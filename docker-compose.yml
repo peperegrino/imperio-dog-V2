@@ -1,0 +1,41 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:?Define DB_NAME in .env}
+      MYSQL_USER: ${DB_USERNAME:?Define DB_USERNAME in .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Define MYSQL_ROOT_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      DB_URL: "jdbc:mysql://db:3306/${DB_NAME:?Define DB_NAME in .env}?useSSL=true&serverTimezone=UTC"
+      DB_USERNAME: ${DB_USERNAME:?Define DB_USERNAME in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET in .env}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      C6_API_BASE_URL: ${C6_API_BASE_URL:-https://baas-api-sandbox.c6bank.info}
+      C6_CLIENT_ID: ${C6_CLIENT_ID:-}
+      C6_CLIENT_SECRET: ${C6_CLIENT_SECRET:-}
+      C6_CERTIFICATE_PATH: /run/secrets/c6-client.p12
+      C6_CERTIFICATE_PASSWORD: ${C6_CERTIFICATE_PASSWORD:-}
+      C6_BILLING_SCHEME: ${C6_BILLING_SCHEME:-21}
+      C6_WEBHOOK_URL: ${C6_WEBHOOK_URL:-}
+      C6_WEBHOOK_TOKEN: ${C6_WEBHOOK_TOKEN:-}
+      C6_STATUS_SYNC_INTERVAL_MS: ${C6_STATUS_SYNC_INTERVAL_MS:-300000}
+    volumes:
+      - ${C6_CERTIFICATE_FILE:-./secrets/c6-client.p12}:/run/secrets/c6-client.p12:ro
+    depends_on:
+      - db
+
+volumes:
+  mysql_data:
