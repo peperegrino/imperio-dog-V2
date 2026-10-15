@@ -38,7 +38,16 @@ public class ChargeService {
 
     @Transactional
     public ChargeResponseDTO createCharge(ChargeRequestDTO request) {
-        if (request.dueDate().isBefore(LocalDate.now(ZoneId.of("America/Sao_Paulo")))) {
+        LocalDate today = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
+        if (request.serviceDate().isAfter(today)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Service date cannot be in the future");
+        }
+        if (request.dueDate().isBefore(request.serviceDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Boleto due date cannot be before the service date");
+        }
+        if (request.dueDate().isBefore(today)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Boleto due date cannot be in the past");
         }
@@ -125,6 +134,6 @@ public class ChargeService {
                 charge.getPet().getName(), charge.getService().getName(), charge.getAmount(),
                 charge.getServiceDate(), charge.getDueDate(), charge.getPaymentDate(),
                 charge.getStatus(), ticketUrl, charge.getCustomer().getId(),
-                charge.getCustomer().getUser().getEmail(), charge.getBarcode(), charge.getDigitableLine());
+                charge.getBarcode(), charge.getDigitableLine());
     }
 }

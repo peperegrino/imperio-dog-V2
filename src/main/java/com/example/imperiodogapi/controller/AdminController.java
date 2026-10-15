@@ -14,6 +14,7 @@ import com.example.imperiodogapi.service.CustomerService;
 import com.example.imperiodogapi.service.PetService;
 import com.example.imperiodogapi.service.ServiceEntityService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -66,17 +67,17 @@ public class AdminController {
     }
 
     @GetMapping("/services/{id}")
-    public ServiceResponseDTO getService(@PathVariable Long id) {
+    public ServiceResponseDTO getService(@PathVariable @Positive Long id) {
         return serviceEntityService.findById(id);
     }
 
     @PutMapping("/services/{id}")
-    public ServiceResponseDTO updateService(@PathVariable Long id, @Valid @RequestBody ServiceRequestDTO request) {
+    public ServiceResponseDTO updateService(@PathVariable @Positive Long id, @Valid @RequestBody ServiceRequestDTO request) {
         return serviceEntityService.update(id, request);
     }
 
     @DeleteMapping("/services/{id}")
-    public ResponseEntity<Void> deleteService(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteService(@PathVariable @Positive Long id) {
         serviceEntityService.delete(id);
         return ResponseEntity.noContent().build();
     }
@@ -92,17 +93,17 @@ public class AdminController {
     }
 
     @GetMapping("/pets/{id}")
-    public PetResponseDTO getPet(@PathVariable Long id) {
+    public PetResponseDTO getPet(@PathVariable @Positive Long id) {
         return petService.findById(id);
     }
 
     @PutMapping("/pets/{id}")
-    public PetResponseDTO updatePet(@PathVariable Long id, @Valid @RequestBody PetRequestDTO request) {
+    public PetResponseDTO updatePet(@PathVariable @Positive Long id, @Valid @RequestBody PetRequestDTO request) {
         return petService.update(id, request);
     }
 
     @DeleteMapping("/pets/{id}")
-    public ResponseEntity<Void> deletePet(@PathVariable Long id) {
+    public ResponseEntity<Void> deletePet(@PathVariable @Positive Long id) {
         petService.delete(id);
         return ResponseEntity.noContent().build();
     }

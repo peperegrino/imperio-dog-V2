@@ -77,7 +77,7 @@ public class CustomerService {
 
     private CustomerResponseDTO toResponse(Customer customer) {
         User user = customer.getUser();
-        return new CustomerResponseDTO(customer.getId(), user.getName(), user.getEmail(), user.getPhone(), user.getCpf());
+        return new CustomerResponseDTO(customer.getId(), user.getName(), user.getEmail(), user.getPhone(), "***.***.***-**");
     }
 
     private boolean isValidCpf(String cpf) {

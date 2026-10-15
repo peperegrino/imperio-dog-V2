@@ -18,7 +18,6 @@ public record ChargeResponseDTO(
         ChargeStatus status,
         String ticketUrl,
         Long customerId,
-        String customerEmail,
         String barcode,
         String digitableLine
 ) {

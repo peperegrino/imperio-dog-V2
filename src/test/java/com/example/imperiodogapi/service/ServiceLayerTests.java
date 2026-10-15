@@ -136,7 +136,7 @@ class ServiceLayerTests {
         assertEquals(10L, response.id());
         assertEquals("Maria Silva", response.name());
         assertEquals("maria@email.com", response.email());
-        assertEquals("12345678909", response.cpf());
+        assertEquals("***.***.***-**", response.cpf());
         verify(userRepository).save(any(User.class));
     }
 

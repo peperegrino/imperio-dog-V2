@@ -3,6 +3,7 @@ package com.example.imperiodogapi.controller;
 import com.example.imperiodogapi.dto.ChargeResponseDTO;
 import com.example.imperiodogapi.service.ChargeService;
 import com.example.imperiodogapi.service.C6BankService;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -34,14 +35,14 @@ public class ChargeController {
     }
 
     @GetMapping("/{id}")
-    public ChargeResponseDTO getCharge(@PathVariable Long id,
+    public ChargeResponseDTO getCharge(@PathVariable @Positive Long id,
                                        @AuthenticationPrincipal UserDetails principal) {
         boolean admin = AuthorityUtils.authorityListToSet(principal.getAuthorities()).contains("ROLE_ADMIN");
         return chargeService.findByIdForUser(id, principal.getUsername(), admin);
     }
 
     @GetMapping("/{id}/boleto")
-    public ResponseEntity<byte[]> downloadBoleto(@PathVariable Long id,
+    public ResponseEntity<byte[]> downloadBoleto(@PathVariable @Positive Long id,
                                                   @AuthenticationPrincipal UserDetails principal) {
         boolean admin = AuthorityUtils.authorityListToSet(principal.getAuthorities()).contains("ROLE_ADMIN");
         String bankSlipId = chargeService.findBankSlipIdForUser(id, principal.getUsername(), admin);
