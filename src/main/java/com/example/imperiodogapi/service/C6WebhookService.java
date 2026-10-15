@@ -1,5 +1,6 @@
 package com.example.imperiodogapi.service;
 
+import com.example.imperiodogapi.dto.C6WebhookRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,14 +31,14 @@ public class C6WebhookService {
                 && MessageDigest.isEqual(webhookToken, suppliedToken.getBytes(StandardCharsets.UTF_8));
     }
 
-    public void processNotification(JsonNode notification) {
-        if (!"BANK_SLIP".equalsIgnoreCase(notification.path("service").asText())) {
+    public void processNotification(C6WebhookRequest notification) {
+        if (!"BANK_SLIP".equalsIgnoreCase(notification.service())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Unsupported C6 Bank webhook service");
         }
 
-        JsonNode information = notification.path("information");
-        if (information.isTextual()) {
+        JsonNode information = notification.information();
+        if (information != null && information.isTextual()) {
             try {
                 information = objectMapper.readTree(information.asText());
             } catch (Exception exception) {
@@ -45,9 +46,9 @@ public class C6WebhookService {
                         "Invalid C6 Bank boleto notification information", exception);
             }
         }
-        String bankSlipId = information.path("id").asText(null);
+        String bankSlipId = information == null ? null : information.path("id").asText(null);
         if (bankSlipId == null || bankSlipId.isBlank()) {
-            bankSlipId = notification.path("external_id").asText(null);
+            bankSlipId = notification.externalId();
         }
         if (bankSlipId == null || bankSlipId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
