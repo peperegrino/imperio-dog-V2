@@ -1,4 +1,5 @@
 import { useFonts } from 'expo-font';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import FontLoading from './src/components/FontLoading';
 import Navigation from './src/navigation';
@@ -20,5 +21,9 @@ export default function App() {
     return <FontLoading />;
   }
 
-  return <Navigation />;
+  return (
+    <SafeAreaProvider>
+      <Navigation />
+    </SafeAreaProvider>
+  );
 }
