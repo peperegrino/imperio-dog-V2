@@ -32,7 +32,6 @@ export const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     backgroundColor: colors.background,
     borderRadius: 6,
-    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
