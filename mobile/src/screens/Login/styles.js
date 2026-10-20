@@ -32,7 +32,6 @@ export const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     backgroundColor: colors.background,
     borderRadius: 6,
-    elevation: 1,
   },
   emailField: {
     marginTop: spacing.lg,
