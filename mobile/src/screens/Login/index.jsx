@@ -78,15 +78,6 @@ export default function LoginScreen() {
                 onPress={() => console.log('Entrar no Resort', { email, perfilAtivo })}
               />
             </View>
-            <View style={styles.signupRow}>
-              <Text style={styles.signupCopy}>Primeira vez por aqui? </Text>
-              <Pressable
-                accessibilityRole="link"
-                onPress={() => console.log('Criar conta do Tutor')}
-              >
-                <Text style={styles.signupLink}>Criar conta do Tutor</Text>
-              </Pressable>
-            </View>
           </View>
 
           <View style={styles.footerSpacer} />
