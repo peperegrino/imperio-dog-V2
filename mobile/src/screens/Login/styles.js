@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
     marginTop: spacing.formOverlap,
     paddingTop: spacing.card,
     paddingBottom: spacing.lg,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderRadius: 6,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
