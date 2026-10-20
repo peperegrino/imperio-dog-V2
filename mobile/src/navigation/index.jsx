@@ -1,5 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Platform } from 'react-native';
 
 import ChargesScreen from '../screens/Charges';
 import CustomersScreen from '../screens/Customers';
@@ -21,9 +22,13 @@ function PagamentoRoute({ navigation }) {
 }
 
 export default function Navigation() {
+  const isAdminHomePreview = __DEV__
+    && Platform.OS === 'web'
+    && new URLSearchParams(window.location.search).get('preview') === 'admin-home';
+
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName={isAdminHomePreview ? 'Home' : 'Login'} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Customers" component={CustomersScreen} />
