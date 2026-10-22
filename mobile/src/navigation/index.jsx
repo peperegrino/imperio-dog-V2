@@ -7,6 +7,7 @@ import HomeScreen from '../screens/Home';
 import LoginScreen from '../screens/Login';
 import PagamentoScreen from '../screens/Pagamento/PagamentoScreen';
 import PetsScreen from '../screens/Pets';
+import ProfileScreen from '../screens/Profile';
 import ServicesScreen from '../screens/Services';
 
 const Stack = createNativeStackNavigator();
@@ -16,6 +17,7 @@ function PagamentoRoute({ navigation }) {
     <PagamentoScreen
       onBack={() => navigation.goBack()}
       onBackToDetails={() => navigation.goBack()}
+      onProfilePress={() => navigation.navigate('Profile')}
     />
   );
 }
@@ -23,7 +25,7 @@ function PagamentoRoute({ navigation }) {
 export default function Navigation() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName="Profile" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Customers" component={CustomersScreen} />
@@ -31,6 +33,7 @@ export default function Navigation() {
         <Stack.Screen name="Services" component={ServicesScreen} />
         <Stack.Screen name="Charges" component={ChargesScreen} />
         <Stack.Screen name="Pagamento" component={PagamentoRoute} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
