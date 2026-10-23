@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,12 +18,26 @@ import RoleTabs from '../../components/RoleTabs';
 import SecurityFooter from '../../components/SecurityFooter';
 import { styles } from './styles';
 
-export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+const EMAIL_PADRAO = 'admin@imperiodog.com';
+const SENHA_PADRAO = '123456';
+
+export default function LoginScreen({ navigation }) {
+  const [email, setEmail] = useState(EMAIL_PADRAO);
+  const [senha, setSenha] = useState(SENHA_PADRAO);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [lembrar, setLembrar] = useState(true);
   const [perfilAtivo, setPerfilAtivo] = useState('tutor');
+
+  function entrar() {
+    const emailValido = email.trim().toLowerCase() === EMAIL_PADRAO;
+
+    if (!emailValido || senha !== SENHA_PADRAO) {
+      Alert.alert('Não foi possível entrar', 'Confira o e-mail e a senha e tente novamente.');
+      return;
+    }
+
+    navigation.replace('Home');
+  }
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
@@ -75,7 +90,7 @@ export default function LoginScreen() {
             <View style={styles.submitButton}>
               <Button
                 label="Entrar no Resort"
-                onPress={() => console.log('Entrar no Resort', { email, perfilAtivo })}
+                onPress={entrar}
               />
             </View>
           </View>
