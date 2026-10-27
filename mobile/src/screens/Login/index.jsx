@@ -36,7 +36,7 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    navigation.replace('Home');
+    navigation.replace(perfilAtivo === 'tutor' ? 'Home' : 'Admin');
   }
 
   return (

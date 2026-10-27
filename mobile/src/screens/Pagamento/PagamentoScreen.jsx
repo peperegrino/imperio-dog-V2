@@ -30,7 +30,6 @@ import {
 
 import { colors, fonts, shadows } from './theme';
 import {
-  avatarUserXml,
   backArrowXml,
   barcodeXml,
   copySmallXml,
@@ -40,6 +39,7 @@ import {
   receiptXml,
   warningXml,
 } from './svgIcons';
+import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
 
 /* ------------------------------------------------------------------ */
 /* Dados da tela (troque por dados reais da API)                       */
@@ -84,8 +84,10 @@ const Icon = ({ xml, frameW, frameH, svgW, svgH }) => (
 export default function PagamentoScreen({
   onBack,
   onProfilePress,
+  onNavigate,
   onViewFullBoleto,
   onBackToDetails,
+  homeRoute = 'Home',
 }) {
   const insets = useSafeAreaInsets();
   const blurTarget = useRef(null);
@@ -316,16 +318,14 @@ export default function PagamentoScreen({
             <Text style={styles.headerTitle}>Pagamento</Text>
           </View>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Perfil"
-            onPress={onProfilePress}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <SvgXml xml={avatarUserXml} width={32} height={32} />
-          </Pressable>
+          <ProfileButton onPress={onProfilePress} size={32} iconSize={16} />
         </View>
       </View>
+      <AppNavigation
+        activeRoute="Charges"
+        homeRoute={homeRoute}
+        navigation={{ navigate: onNavigate }}
+      />
     </View>
   );
 }

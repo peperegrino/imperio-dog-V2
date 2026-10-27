@@ -1,11 +1,12 @@
-import { Text, View } from 'react-native';
+import ScreenPlaceholder from '../../components/ScreenPlaceholder';
 
-import { styles } from './styles';
-
-export default function CustomersScreen() {
+export default function CustomersScreen({ navigation, route }) {
   return (
-    <View style={styles.container}>
-      <Text>Customers</Text>
-    </View>
+    <ScreenPlaceholder
+      activeRoute="Home"
+      homeRoute={route.params?.homeRoute || 'Admin'}
+      navigation={navigation}
+      title="Clientes"
+    />
   );
 }

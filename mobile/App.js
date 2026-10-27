@@ -6,6 +6,9 @@ import Navigation from './src/navigation';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular: require(
+      '@expo-google-fonts/plus-jakarta-sans/400Regular/PlusJakartaSans_400Regular.ttf',
+    ),
     PlusJakartaSans_500Medium: require(
       '@expo-google-fonts/plus-jakarta-sans/500Medium/PlusJakartaSans_500Medium.ttf',
     ),
