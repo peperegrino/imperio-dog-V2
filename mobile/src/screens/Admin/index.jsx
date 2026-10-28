@@ -1,6 +1,7 @@
 import ScreenPlaceholder from '../../components/ScreenPlaceholder';
 
 const managementLinks = [
+  { label: 'Cobranças', route: 'Charges' },
   { label: 'Clientes', route: 'Customers' },
   { label: 'Pets', route: 'Pets' },
   { label: 'Serviços', route: 'Services' },

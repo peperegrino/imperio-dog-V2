@@ -21,7 +21,12 @@ const items = [
   { key: 'Profile', label: 'Perfil', icon: profileIconXml, size: [16, 16] },
 ];
 
-export function ProfileButton({ onPress, size = 32, iconSize = 16 }) {
+export function ProfileButton({
+  onPress,
+  size = 32,
+  iconSize = 16,
+  backgroundColor = colors.primary,
+}) {
   return (
     <Pressable
       accessibilityLabel="Abrir perfil"
@@ -30,6 +35,7 @@ export function ProfileButton({ onPress, size = 32, iconSize = 16 }) {
       style={[
         styles.profileButton,
         { width: size, height: size, borderRadius: size / 2 },
+        { backgroundColor },
       ]}
     >
       <SvgXml

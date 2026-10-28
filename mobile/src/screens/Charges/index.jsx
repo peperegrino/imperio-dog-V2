@@ -4,6 +4,7 @@ import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
 import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
 import InvoiceCard from '../../components/InvoiceCard';
+import ManagementChargesScreen from './ManagementScreen';
 import { styles } from './styles';
 
 const invoices = [
@@ -38,7 +39,7 @@ function IconSlot({ style }) {
   return <View accessible={false} style={style} />;
 }
 
-function Header() {
+function Header({ navigation, homeRoute }) {
   return (
     <BlurView intensity={12} tint="light" style={styles.headerBlur}>
       <View style={styles.header}>
@@ -73,9 +74,9 @@ function Header() {
   );
 }
 
-export default function ChargesScreen({ navigation, route }) {
-  const [activeFilter, setActiveFilter] = useState('todas');
+function TutorChargesScreen({ navigation, route }) {
   const homeRoute = route.params?.homeRoute || 'Home';
+  const [activeFilter, setActiveFilter] = useState('todas');
   const visibleInvoices = activeFilter === 'todas'
     ? invoices
     : invoices.filter((invoice) => invoice.status === activeFilter);
@@ -138,7 +139,7 @@ export default function ChargesScreen({ navigation, route }) {
           ))}
         </View>
       </ScrollView>
-      <Header />
+      <Header homeRoute={homeRoute} navigation={navigation} />
       <AppNavigation
         activeRoute="Charges"
         homeRoute={homeRoute}
@@ -146,4 +147,12 @@ export default function ChargesScreen({ navigation, route }) {
       />
     </View>
   );
+}
+
+export default function ChargesScreen({ navigation, route }) {
+  if (route.params?.homeRoute === 'Admin') {
+    return <ManagementChargesScreen navigation={navigation} />;
+  }
+
+  return <TutorChargesScreen navigation={navigation} route={route} />;
 }

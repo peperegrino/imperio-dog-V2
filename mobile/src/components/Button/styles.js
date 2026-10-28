@@ -19,6 +19,15 @@ export const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  disabled: {
+    opacity: 0.55,
+  },
   pressed: {
     opacity: 0.9,
   },
