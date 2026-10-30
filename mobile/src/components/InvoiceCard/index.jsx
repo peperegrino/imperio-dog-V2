@@ -21,7 +21,7 @@ const statusStyles = {
   },
 };
 
-export default function InvoiceCard({ dueDate, title, status, amount, onPress }) {
+export default function InvoiceCard({ dueDate, dateLabel = 'Vencimento', title, status, amount, onPress }) {
   const statusStyle = statusStyles[status];
   const isPending = status === 'pendente';
 
@@ -31,7 +31,7 @@ export default function InvoiceCard({ dueDate, title, status, amount, onPress })
         <View style={styles.invoiceInfo}>
           <View style={styles.dueDateRow}>
             <View accessible={false} style={styles.calendarIconSlot} />
-            <Text style={styles.dueDate}>Vencimento: {dueDate}</Text>
+            <Text style={styles.dueDate}>{dateLabel}: {dueDate}</Text>
           </View>
           <Text style={styles.invoiceTitle}>{title}</Text>
         </View>

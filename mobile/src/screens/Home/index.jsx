@@ -133,7 +133,20 @@ export default function HomeScreen({ navigation }) {
     return charges.filter((charge) => charge.status === activeFilter);
   }, [activeFilter]);
   const hasPendingCharges = pendingCharges.length > 0;
-  const openCharges = () => navigation.navigate('Charges', { homeRoute: 'Home' });
+  const openCharges = () => {
+  const invoices = charges.map((charge) => ({
+    dueDate: charge.description.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] || '',
+    dateLabel: charge.status === 'pending' ? 'Vencimento' : 'Pago em',
+    title: charge.title,
+    status: charge.status === 'pending' ? 'pendente' : 'pago',
+    amount: charge.amount,
+  }));
+
+  navigation.navigate('Charges', {
+    homeRoute: 'Home',
+    invoices,
+  });
+};
 
   return (
     <SafeAreaView edges={['left', 'right', 'top', 'bottom']} style={styles.safeArea}>
