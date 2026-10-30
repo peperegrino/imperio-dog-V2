@@ -111,14 +111,13 @@ export default function HomeScreen({ navigation }) {
             </Pressable>
             <Text style={styles.headerTitle}>Início</Text>
             <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Perfil indisponível"
-              accessibilityState={{ disabled: true }}
-              disabled
-              style={styles.profileButton}
-            >
-              <HomeIcon name="financeBadge" />
-            </Pressable>
+  accessibilityRole="button"
+  accessibilityLabel="Abrir perfil"
+  onPress={() => goTo('Profile')}
+  style={styles.profileButton}
+>
+  <HomeIcon name="financeBadge" />
+</Pressable>
           </View>
 
           <View style={styles.greeting}>
@@ -221,7 +220,7 @@ export default function HomeScreen({ navigation }) {
         <BottomTab label="Início" icon="home" active onPress={() => {}} />
         <BottomTab label="Faturas" icon="invoices" onPress={() => goTo('Charges')} />
         <BottomTab label="Histórico" icon="history" disabled />
-        <BottomTab label="Perfil" icon="profile" disabled />
+        <BottomTab label="Perfil" icon="profile" onPress={() => goTo('Profile')} />
       </View>
     </SafeAreaView>
   );
