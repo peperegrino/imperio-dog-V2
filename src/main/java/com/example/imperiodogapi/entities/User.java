@@ -28,7 +28,8 @@ public class User {
 
     private String phone;
 
-    @Column(nullable = false, unique = true, length = 14)
+    // Opcional: o administrador inicial nao precisa de CPF (clientes sempre informam).
+    @Column(unique = true, length = 14)
     private String cpf;
 
     @Column(name = "zip_code", length = 16)
