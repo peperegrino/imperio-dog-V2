@@ -1,16 +1,16 @@
+# Uso local opcional. Em producao o banco e gerenciado (Neon, Supabase ou Azure Database for PostgreSQL).
 services:
   db:
-    image: mysql:8.0
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_NAME:?Define DB_NAME in .env}
-      MYSQL_USER: ${DB_USERNAME:?Define DB_USERNAME in .env}
-      MYSQL_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD in .env}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Define MYSQL_ROOT_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:?Define DB_NAME in .env}
+      POSTGRES_USER: ${DB_USERNAME:?Define DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD in .env}
     ports:
-      - "127.0.0.1:3306:3306"
+      - "127.0.0.1:5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - pg_data:/var/lib/postgresql/data
 
   backend:
     build: .
@@ -18,11 +18,16 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     environment:
-      DB_URL: "jdbc:mysql://db:3306/${DB_NAME:?Define DB_NAME in .env}?useSSL=true&serverTimezone=UTC"
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      DB_URL: "jdbc:postgresql://db:5432/${DB_NAME:?Define DB_NAME in .env}"
       DB_USERNAME: ${DB_USERNAME:?Define DB_USERNAME in .env}
       DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD in .env}
       JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET in .env}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       C6_API_BASE_URL: ${C6_API_BASE_URL:-https://baas-api-sandbox.c6bank.info}
       C6_CLIENT_ID: ${C6_CLIENT_ID:-}
       C6_CLIENT_SECRET: ${C6_CLIENT_SECRET:-}
@@ -38,4 +43,4 @@ services:
       - db
 
 volumes:
-  mysql_data:
+  pg_data:
