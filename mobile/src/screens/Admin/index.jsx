@@ -1,6 +1,8 @@
 ﻿import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAuth } from '../../contexts/AuthContext';
+import { showAlert, showConfirm } from '../../utils/alert';
 import HomeIcon from '../Home/icons';
 import { styles } from './styles';
 
@@ -90,7 +92,20 @@ function BottomTab({ label, icon, active, disabled, onPress }) {
 }
 
 export default function AdminScreen({ navigation }) {
+  const { signOut } = useAuth();
   const goTo = (route) => navigation?.navigate(route, { homeRoute: 'Admin' });
+
+  async function sair() {
+    try {
+      if (!(await showConfirm('Sair da conta?', 'Deseja encerrar sua sessão?'))) {
+        return;
+      }
+      await signOut();
+      navigation.replace('Login');
+    } catch (error) {
+      showAlert('Não foi possível sair', error.message || 'Tente novamente.');
+    }
+  }
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.safeArea}>
@@ -117,6 +132,13 @@ export default function AdminScreen({ navigation }) {
               style={styles.profileButton}
             >
               <HomeIcon name="financeBadge" />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={sair}
+              style={styles.logoutButton}
+            >
+              <Text style={styles.logoutLabel}>Sair</Text>
             </Pressable>
           </View>
 

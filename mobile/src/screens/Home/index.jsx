@@ -10,8 +10,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
 import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
+import { useAuth } from '../../contexts/AuthContext';
 import { charges } from '../../data/charges';
 import { styles } from './styles';
+import { showAlert, showConfirm } from '../../utils/alert';
 import {
   bellXml,
   calendarXml,
@@ -89,6 +91,7 @@ function ChargeCard({ charge, onOpenCharges }) {
 }
 
 export default function HomeScreen({ navigation }) {
+  const { signOut } = useAuth();
   const [activeFilter, setActiveFilter] = useState('all');
   const pendingCharges = charges.filter((charge) => charge.status === 'pending');
   const visibleCharges = useMemo(() => {
@@ -114,6 +117,18 @@ export default function HomeScreen({ navigation }) {
   });
 };
 
+  async function sair() {
+    try {
+      if (!(await showConfirm('Sair da conta?', 'Deseja encerrar sua sessão?'))) {
+        return;
+      }
+      await signOut();
+      navigation.replace('Login');
+    } catch (error) {
+      showAlert('Não foi possível sair', error.message || 'Tente novamente.');
+    }
+  }
+
   return (
     <SafeAreaView edges={['left', 'right', 'top', 'bottom']} style={styles.safeArea}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
@@ -138,6 +153,13 @@ export default function HomeScreen({ navigation }) {
             size={30}
             iconSize={15}
           />
+          <Pressable
+            accessibilityRole="button"
+            onPress={sair}
+            style={styles.logoutButton}
+          >
+            <Text style={styles.logoutLabel}>Sair</Text>
+          </Pressable>
         </View>
       </View>
 

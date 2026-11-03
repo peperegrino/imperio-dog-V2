@@ -32,6 +32,15 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  logoutButton: {
+    minHeight: 32,
+    justifyContent: 'center',
+  },
+  logoutLabel: {
+    color: colors.primary,
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: 12,
+  },
   bellButton: {
     width: 28,
     height: 32,

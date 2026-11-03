@@ -31,6 +31,9 @@ export const styles = StyleSheet.create({
   pressed: {
     opacity: 0.9,
   },
+  disabled: {
+    opacity: 0.65,
+  },
   label: {
     color: colors.white,
     fontFamily: typography.fontFamily.bold,

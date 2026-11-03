@@ -48,6 +48,16 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 'auto',
   },
+  logoutButton: {
+    minHeight: 32,
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+  logoutLabel: {
+    color: colors.primary,
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: 12,
+  },
   greeting: {
     minHeight: 62,
     flexDirection: 'row',

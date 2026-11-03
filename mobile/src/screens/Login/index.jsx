@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,29 +13,44 @@ import Button from '../../components/Button';
 import Checkbox from '../../components/Checkbox';
 import Input from '../../components/Input';
 import LogoHeader from '../../components/LogoHeader';
-import RoleTabs from '../../components/RoleTabs';
 import SecurityFooter from '../../components/SecurityFooter';
+import { useAuth } from '../../contexts/AuthContext';
+import { ApiError } from '../../services/api';
+import { showAlert } from '../../utils/alert';
 import { styles } from './styles';
 
-const EMAIL_PADRAO = 'admin@imperiodog.com';
-const SENHA_PADRAO = '123456';
-
-export default function LoginScreen({ navigation }) {
-  const [email, setEmail] = useState(EMAIL_PADRAO);
-  const [senha, setSenha] = useState(SENHA_PADRAO);
+export default function LoginScreen({ navigation, route }) {
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [lembrar, setLembrar] = useState(true);
-  const [perfilAtivo, setPerfilAtivo] = useState('tutor');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn } = useAuth();
 
-  function entrar() {
-    const emailValido = email.trim().toLowerCase() === EMAIL_PADRAO;
+  useEffect(() => {
+    if (route.params?.registrationComplete) {
+      showAlert('Cadastro realizado', 'Sua conta foi criada. Entre com seu e-mail e senha.');
+      navigation.setParams({ registrationComplete: false });
+    }
+  }, [navigation, route.params?.registrationComplete]);
 
-    if (!emailValido || senha !== SENHA_PADRAO) {
-      Alert.alert('Não foi possível entrar', 'Confira o e-mail e a senha e tente novamente.');
+  async function entrar() {
+    if (isSubmitting) {
       return;
     }
 
-    navigation.replace(perfilAtivo === 'tutor' ? 'Home' : 'Admin');
+    setIsSubmitting(true);
+    try {
+      const session = await signIn(email.trim(), senha);
+      navigation.replace(session.role === 'ADMIN' ? 'Admin' : 'Home');
+    } catch (error) {
+      const message = error instanceof ApiError && error.status === 401
+        ? 'Confira o e-mail e a senha e tente novamente.'
+        : error.message || 'Tente novamente mais tarde.';
+      showAlert('Não foi possível entrar', message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -54,7 +68,6 @@ export default function LoginScreen({ navigation }) {
           <LogoHeader />
 
           <View style={styles.formCard}>
-            <RoleTabs activeRole={perfilAtivo} onChange={setPerfilAtivo} />
             <View style={styles.emailField}>
               <Input
                 label="E-mail cadastrado"
@@ -89,10 +102,19 @@ export default function LoginScreen({ navigation }) {
             </View>
             <View style={styles.submitButton}>
               <Button
-                label="Entrar no Resort"
+                label={isSubmitting ? 'Entrando...' : 'Entrar no Resort'}
                 onPress={entrar}
+                disabled={isSubmitting}
               />
             </View>
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => navigation.navigate('Signup')}
+              style={styles.signupRow}
+            >
+              <Text style={styles.signupCopy}>Ainda não tem uma conta? </Text>
+              <Text style={styles.signupLink}>Cadastre-se</Text>
+            </Pressable>
           </View>
 
           <View style={styles.footerSpacer} />
