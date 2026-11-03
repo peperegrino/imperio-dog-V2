@@ -16,7 +16,6 @@ import PagamentoScreen from '../screens/Pagamento/PagamentoScreen';
 import PetsScreen from '../screens/Pets';
 import ProfileScreen from '../screens/Profile';
 import SignupScreen from '../screens/Signup';
-import NewPetScreen from '../screens/NewPet';
 import ServicesScreen from '../screens/Services';
 import { setUnauthorizedHandler } from '../services/api';
 import { colors } from '../theme/colors';
