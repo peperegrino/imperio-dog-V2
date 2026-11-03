@@ -8,6 +8,7 @@ import CustomersScreen from '../screens/Customers';
 import HistoryScreen from '../screens/History';
 import HomeScreen from '../screens/Home';
 import LoginScreen from '../screens/Login';
+import NewPetScreen from '../screens/NewPet';
 import PagamentoScreen from '../screens/Pagamento/PagamentoScreen';
 import PetsScreen from '../screens/Pets';
 import ProfileScreen from '../screens/Profile';
@@ -43,6 +44,7 @@ export default function Navigation() {
         <Stack.Screen name="Admin" component={AdminScreen} />
         <Stack.Screen name="Customers" component={CustomersScreen} />
         <Stack.Screen name="Pets" component={PetsScreen} />
+        <Stack.Screen name="NewPet" component={NewPetScreen} />
         <Stack.Screen name="Services" component={ServicesScreen} />
         <Stack.Screen name="Charges" component={ChargesScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />
