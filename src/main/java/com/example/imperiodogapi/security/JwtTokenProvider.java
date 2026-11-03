@@ -5,6 +5,8 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
@@ -14,6 +16,7 @@ import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 public class JwtTokenProvider {
@@ -22,14 +25,19 @@ public class JwtTokenProvider {
     private static final String HEADER = Base64.getUrlEncoder().withoutPadding()
             .encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
 
+    private static final String DEV_SECRET_PREFIX = "dev-only-";
+
     private final ObjectMapper objectMapper;
+    private final Environment environment;
     private final String secret;
     private final long expirationMillis;
 
     public JwtTokenProvider(ObjectMapper objectMapper,
+                            Environment environment,
                             @Value("${app.jwt.secret}") String secret,
                             @Value("${app.jwt.expiration-ms:86400000}") long expirationMillis) {
         this.objectMapper = objectMapper;
+        this.environment = environment;
         this.secret = secret;
         this.expirationMillis = expirationMillis;
     }
@@ -38,6 +46,9 @@ public class JwtTokenProvider {
     void validateConfiguration() {
         if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException("JWT_SECRET must contain at least 32 bytes");
+        }
+        if (secret.startsWith(DEV_SECRET_PREFIX) && environment.acceptsProfiles(Profiles.of("prod"))) {
+            throw new IllegalStateException("JWT_SECRET must be set to a private value when the prod profile is active");
         }
         if (expirationMillis < 60_000) {
             throw new IllegalStateException("JWT expiration must be at least 60 seconds");
@@ -68,6 +79,15 @@ public class JwtTokenProvider {
             return true;
         } catch (Exception exception) {
             return false;
+        }
+    }
+
+    /** Valida o token e devolve o e-mail (claim "sub") em uma unica leitura. */
+    public Optional<String> extractEmail(String token) {
+        try {
+            return Optional.of(parseClaims(token).get("sub").toString());
+        } catch (Exception exception) {
+            return Optional.empty();
         }
     }
 

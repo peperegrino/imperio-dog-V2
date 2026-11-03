@@ -14,6 +14,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Autentica a requisicao a partir de "Authorization: Bearer <token>".
+ * Token ausente ou invalido NAO interrompe a cadeia: a requisicao segue sem autenticacao e o
+ * AuthenticationEntryPoint responde 401 apenas nas rotas protegidas. Assim, rotas publicas
+ * (como /auth/login) continuam funcionando mesmo se o frontend enviar um token expirado.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -30,15 +36,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authorization != null && authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+        if (authorization != null && authorization.regionMatches(true, 0, "Bearer ", 0, 7)
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
             String token = authorization.substring(7).trim();
-            if (token.isEmpty() || !tokenProvider.isTokenValid(token)) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired bearer token");
-                return;
-            }
-            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            tokenProvider.extractEmail(token).ifPresent(email -> {
                 try {
-                    String email = tokenProvider.getEmail(token);
                     UserDetails userDetails = userDetailsService.loadUserByUsername(email);
                     var authentication = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
@@ -46,10 +48,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 } catch (RuntimeException exception) {
                     SecurityContextHolder.clearContext();
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired bearer token");
-                    return;
                 }
-            }
+            });
         }
         filterChain.doFilter(request, response);
     }
