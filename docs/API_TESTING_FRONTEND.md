@@ -2,6 +2,13 @@
 
 Base local: `http://localhost:8080/api`. Em produção use a URL pública do backend (por exemplo `https://imperio-dog-api.onrender.com/api`) e guarde-a em uma variável do frontend (`VITE_API_URL`/`NEXT_PUBLIC_API_URL`). O domínio do frontend precisa estar em `CORS_ALLOWED_ORIGINS`. Todas as rotas administrativas precisam de JWT `ROLE_ADMIN`; os dados de cobrança do cliente autenticado são limitados às próprias cobranças.
 
+## Emissao segura de cobrancas
+
+`POST /admin/charges` exige o header `Idempotency-Key` (por exemplo um UUID).
+Guarde a chave por operacao e reutilize-a com o mesmo corpo em caso de repeticao,
+timeout ou erro. Nao gere outra chave para tentar recuperar a mesma cobranca.
+Veja [validacao de producao e conciliacao](PRODUCTION_VALIDATION.md).
+
 ## Login
 
 ```http
