@@ -5,7 +5,6 @@ import com.example.imperiodogapi.entities.enums.ChargeStatus;
 import com.example.imperiodogapi.repository.ChargeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -14,7 +13,6 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
@@ -60,7 +58,7 @@ public class C6ChargeStatusService {
     }
 
     private void updateLocalCharge(C6BankService.Boleto boleto) {
-        List<Charge> matchingCharges = chargeRepository.findByC6BankSlipId(boleto.id());
+        List<Charge> matchingCharges = chargeRepository.findLockedByBankSlipId(boleto.id());
         if (matchingCharges.size() != 1) {
             LOGGER.warn("Expected one charge for C6 Bank boleto {}, found {}",
                     boleto.id(), matchingCharges.size());
@@ -79,8 +77,7 @@ public class C6ChargeStatusService {
         }
         charge.setStatus(newStatus);
         if (newStatus == ChargeStatus.PAID) {
-            charge.setPaymentDate(boleto.paymentDate() == null
-                    ? LocalDateTime.now(SAO_PAULO) : boleto.paymentDate());
+            charge.setPaymentDate(boleto.paymentDate());
         }
         chargeRepository.save(charge);
     }
