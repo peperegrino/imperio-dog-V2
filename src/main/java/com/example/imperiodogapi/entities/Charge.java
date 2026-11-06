@@ -22,6 +22,27 @@ public class Charge {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(nullable = false)
+    private long version;
+
+    @Column(name = "idempotency_key", unique = true, length = 128)
+    private String idempotencyKey;
+
+    // Legacy charges have null state. New attempts are committed before calling the bank.
+    @Column(name = "issuance_state", length = 24)
+    private String issuanceState;
+
+    private String customerNameSnapshot;
+    private String petNameSnapshot;
+    private String serviceNameSnapshot;
+
+    @ElementCollection
+    @CollectionTable(name="charge_lines", joinColumns=@JoinColumn(name="charge_id"))
+    @OrderColumn(name="line_number")
+    @Builder.Default
+    private java.util.List<ChargeLine> lines = new java.util.ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
@@ -50,7 +71,7 @@ public class Charge {
     @Column(nullable = false)
     private ChargeStatus status;
 
-    @Column(name = "c6_bank_slip_id")
+    @Column(name = "c6_bank_slip_id", unique = true)
     private String c6BankSlipId;
 
     @Column(name = "c6_external_reference_id", unique = true, length = 10)
