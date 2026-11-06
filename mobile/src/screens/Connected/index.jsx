@@ -596,3 +596,46 @@ export function Dashboard({ navigation }) {
     </Page>
   );
 }
+export function Profile({ navigation }) {
+  const resource = useResource("/account/me");
+  const [values, setValues] = useState(null);
+  const submit = useSubmit();
+  return (
+    <Page title="Meu perfil" navigation={navigation}>
+      <ResourceState resource={resource} />
+      {resource.data && (
+        <Card>
+          <Text style={s.title}>{resource.data.name}</Text>
+          <Text>{resource.data.email}</Text>
+          <Text>CPF: {resource.data.cpf}</Text>
+          <Field
+            label="Nome"
+            value={values?.name ?? resource.data.name}
+            onChangeText={(name) =>
+              setValues((v) => ({ ...resource.data, ...v, name }))
+            }
+          />
+          <Field
+            label="Telefone"
+            value={values?.phone ?? resource.data.phone}
+            onChangeText={(phone) =>
+              setValues((v) => ({ ...resource.data, ...v, phone }))
+            }
+          />
+          <Action
+            title="Salvar perfil"
+            disabled={submit.busy}
+            onPress={() =>
+              submit.run(async () => {
+                await api.put("/account/me", values || resource.data);
+                await resource.reload();
+                submit.setMessage("Perfil atualizado.");
+              })
+            }
+          />
+          <Message>{submit.message}</Message>
+        </Card>
+      )}
+    </Page>
+  );
+}
