@@ -24,7 +24,7 @@ public class CorsConfig {
             config.setAllowedOriginPatterns(patterns);
         }
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Idempotency-Key"));
         // Permite ao frontend ler o nome do arquivo no download do PDF do boleto
         config.setExposedHeaders(List.of("Content-Disposition"));
         // JWT trafega no header Authorization; nao ha cookies, entao credenciais ficam desligadas
