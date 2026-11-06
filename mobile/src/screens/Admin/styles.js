@@ -1,4 +1,4 @@
-﻿import { StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { colors } from '../../theme/colors';
 import { radius } from '../../theme/radius';

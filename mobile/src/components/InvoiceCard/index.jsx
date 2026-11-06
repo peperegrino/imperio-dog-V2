@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
-import { colors } from '../../theme/colors';
+
 import { styles } from './styles';
 
 const statusStyles = {

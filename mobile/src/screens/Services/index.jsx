@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -15,7 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
+
 import { styles } from './styles';
 
 const INITIAL_SERVICES = [

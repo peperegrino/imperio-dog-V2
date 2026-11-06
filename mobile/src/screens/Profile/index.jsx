@@ -13,7 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SvgXml } from 'react-native-svg';
 
 import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
+
 import { styles } from './styles';
 
 const initialProfile = {

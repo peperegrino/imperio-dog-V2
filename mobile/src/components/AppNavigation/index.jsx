@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
 import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
+
 import {
   chargesIconXml,
   historyIconXml,

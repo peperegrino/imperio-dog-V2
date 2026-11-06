@@ -16,7 +16,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import CustomerIcon from '../../components/CustomerIcons';
 import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
+
 import { styles } from './styles';
 
 const initialValues = {
