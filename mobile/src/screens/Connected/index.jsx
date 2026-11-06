@@ -145,3 +145,60 @@ export function Pets({ navigation }) {
     </Page>
   );
 }
+export function NewPet({ navigation }) {
+  const { session } = useAuth();
+  const admin = session?.role === "ADMIN";
+  const customers = useResource(admin ? "/admin/customers" : "/account/me");
+  const [values, setValues] = useState({ species: "Cachorro" }),
+    [customerId, setCustomerId] = useState(null);
+  const submit = useSubmit();
+  return (
+    <Page title="Novo pet" navigation={navigation}>
+      {admin && (
+        <>
+          <ResourceState resource={customers} />
+          <Choose
+            label="Tutor responsável"
+            items={customers.data || []}
+            value={customerId}
+            onChange={setCustomerId}
+          />
+        </>
+      )}
+      <Card>
+        <Fields
+          fields={[
+            ["name", "Nome do pet"],
+            ["species", "Espécie"],
+            ["breed", "Raça"],
+            ["sex", "Sexo"],
+            ["birthDate", "Nascimento (AAAA-MM-DD)"],
+            ["weight", "Peso em kg"],
+            ["notes", "Observações"],
+          ]}
+          values={values}
+          setValues={setValues}
+        />
+        <Action
+          title={submit.busy ? "Salvando…" : "Salvar pet"}
+          disabled={submit.busy}
+          onPress={() =>
+            submit.run(async () => {
+              if (admin && !customerId) throw Error("Selecione o tutor.");
+              await api.post(admin ? "/admin/pets" : "/account/pets", {
+                ...values,
+                customerId,
+                birthDate: values.birthDate || null,
+                weight: values.weight
+                  ? Number(values.weight.replace(",", "."))
+                  : null,
+              });
+              navigation.replace("Pets");
+            })
+          }
+        />
+        <Message>{submit.message}</Message>
+      </Card>
+    </Page>
+  );
+}
