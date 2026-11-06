@@ -25,9 +25,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  disabled: {
-    opacity: 0.55,
-  },
   pressed: {
     opacity: 0.9,
   },
