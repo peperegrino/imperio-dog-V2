@@ -21,3 +21,7 @@ abrem a Home.
 O cadastro público usa `POST /auth/register` com `name`, `email` e `password`.
 O backend deve atribuir o papel padrão de usuário; papéis administrativos não
 são selecionáveis no cadastro.
+
+## Integracao com o backend
+
+Frontend nesta branch; API Java na branch `backend`. Consulte [execucao e contratos](docs/INTEGRATION.md).
