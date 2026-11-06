@@ -36,11 +36,16 @@ build/
 .env
 .env.*
 !.env.example
+.envrc
 secrets/
 *.pem
-*.key
+*.der
 *.p12
 *.pfx
+*.crt
+*.key
+*.jks
+*.keystore
 application-local.properties
 
 ### Logs and local data ###
