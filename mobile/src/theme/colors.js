@@ -1,0 +1,16 @@
+export const colors = {
+  background: '#FAF8F5',
+  surface: '#FFFFFF',
+  headerOverlay: 'rgba(251,251,249,0.95)',
+  primary: '#722F37',
+  brown: '#7B5733',
+  textDark: '#1A1C1C',
+  textMuted: '#534343',
+  textGray: '#696F79',
+  inputBg: 'rgba(236,236,236,0.89)',
+  inputBorderTop: '#F4F4F5',
+  tabActiveBorder: '#EDE6DC',
+  tabInactiveBorder: '#EDEBE8',
+  logoCardBorder: '#EEEEEE',
+  white: '#FFFFFF',
+};

@@ -1,4 +1,4 @@
-name: Verify
+name: Verify application
 on: [push, pull_request]
 jobs:
   verify:
@@ -18,3 +18,21 @@ jobs:
           path: |
             target/surefire-reports/
             target/failsafe-reports/
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_PUBLIC_API_URL: http://localhost:8080/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
