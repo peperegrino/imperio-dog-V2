@@ -28,6 +28,7 @@ import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -143,11 +144,18 @@ public class C6BankService {
         if (date != null && !date.isBlank()) {
             paymentDate = LocalDate.parse(date).atStartOfDay();
         }
+        if (!bankSlipId.equals(response.path("id").asText())) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "C6 Bank returned a different boleto id");
+        }
         return new Boleto(response.path("id").asText(),
                 response.path("status").asText(),
                 response.path("bar_code").asText(null),
                 response.path("digitable_line").asText(null),
-                paymentDate);
+                paymentDate,
+                response.path("external_reference_id").asText(null),
+                response.hasNonNull("amount") ? new BigDecimal(response.path("amount").asText()) : null,
+                response.hasNonNull("due_date") ? LocalDate.parse(response.path("due_date").asText()) : null,
+                response.path("payer").path("tax_id").asText(null));
     }
 
     public byte[] downloadBoleto(String bankSlipId) {
@@ -305,6 +313,10 @@ public class C6BankService {
     }
 
     public record Boleto(String id, String status, String barcode, String digitableLine,
-                         LocalDateTime paymentDate) {
+                         LocalDateTime paymentDate, String externalReferenceId, BigDecimal amount,
+                         LocalDate dueDate, String payerTaxId) {
+        public Boleto(String id, String status, String barcode, String digitableLine, LocalDateTime paymentDate) {
+            this(id, status, barcode, digitableLine, paymentDate, null, null, null, null);
+        }
     }
 }
