@@ -1,5 +1,12 @@
 # Império Dog
 
+Validacao de producao, mudanca do contrato de emissao e roteiro de homologacao:
+[docs/PRODUCTION_VALIDATION.md](docs/PRODUCTION_VALIDATION.md).
+
+Frontend Expo na branch `frontend`, diretorio `mobile/`. A API permanece nesta
+branch `backend`. Veja a comparacao dos contratos, configuracao e execucao conjunta
+em [docs/FRONTEND_BACKEND_INTEGRATION.md](docs/FRONTEND_BACKEND_INTEGRATION.md).
+
 Sistema para ajudar um petshop a organizar os serviços prestados aos clientes e acompanhar as respectivas cobranças.
 
 ## Visão geral
