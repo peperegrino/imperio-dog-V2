@@ -57,6 +57,18 @@ public class AdminController {
         return customerService.findAll();
     }
 
+    public record CustomerWithPet(@jakarta.validation.constraints.NotNull @Valid CustomerRequestDTO customer,
+                                  @jakarta.validation.constraints.NotNull @Valid PetRequestDTO pet) {}
+
+    @PostMapping("/customers/with-pet")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<CustomerResponseDTO> createCustomerWithPet(@Valid @RequestBody CustomerWithPet request) {
+        var customer = customerService.createCustomer(request.customer());
+        var p = request.pet();
+        petService.create(new PetRequestDTO(p.name(),p.species(),p.breed(),customer.id(),p.sex(),p.birthDate(),p.weight(),p.notes()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(customer);
+    }
+
     @PostMapping("/services")
     public ResponseEntity<ServiceResponseDTO> createService(@Valid @RequestBody ServiceRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(serviceEntityService.create(request));
