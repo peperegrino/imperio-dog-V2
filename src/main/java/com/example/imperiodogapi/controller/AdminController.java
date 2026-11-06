@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -109,8 +110,15 @@ public class AdminController {
     }
 
     @PostMapping("/charges")
-    public ResponseEntity<ChargeResponseDTO> createCharge(@Valid @RequestBody ChargeRequestDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(chargeService.createCharge(request));
+    public ResponseEntity<ChargeResponseDTO> createCharge(@Valid @RequestBody ChargeRequestDTO request,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(chargeService.createCharge(request, idempotencyKey));
+    }
+
+    @PostMapping("/charges/{id}/reconcile")
+    public ChargeResponseDTO reconcileCharge(@PathVariable @Positive Long id,
+            @RequestParam String bankSlipId) {
+        return chargeService.reconcile(id, bankSlipId);
     }
 
     @GetMapping("/charges")

@@ -19,6 +19,9 @@ public record ChargeResponseDTO(
         String ticketUrl,
         Long customerId,
         String barcode,
-        String digitableLine
+        String digitableLine,
+        String issuanceState,
+        String externalReferenceId,
+        java.util.List<com.example.imperiodogapi.entities.ChargeLine> items
 ) {
 }
