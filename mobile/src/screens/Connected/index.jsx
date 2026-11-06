@@ -286,3 +286,199 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 const ATTEMPT = "@imperio-dog/charge-attempt";
+export function Management({ navigation }) {
+  const account = useResource("/account/me");
+  const attemptKey = `${ATTEMPT}:${account.data?.id}`;
+  const customers = useResource("/admin/customers"),
+    pets = useResource("/admin/pets"),
+    services = useResource("/admin/services");
+  const [customerId, setCustomerId] = useState(null),
+    [petId, setPetId] = useState(null),
+    [quantities, setQuantities] = useState({}),
+    [serviceDate, setServiceDate] = useState(today()),
+    [dueDate, setDueDate] = useState(today()),
+    [reconcileId, setReconcileId] = useState(""),
+    [bankSlipId, setBankSlipId] = useState("");
+  const submit = useSubmit();
+  const total = (services.data || []).reduce(
+    (sum, item) => sum + Number(item.price) * Number(quantities[item.id] || 0),
+    0,
+  );
+  return (
+    <Page title="Nova cobrança" navigation={navigation}>
+      {[customers, pets, services].map((r, i) => (
+        <ResourceState key={i} resource={r} />
+      ))}
+      <Choose
+        label="Cliente"
+        items={customers.data || []}
+        value={customerId}
+        onChange={(id) => {
+          setCustomerId(id);
+          setPetId(null);
+        }}
+      />
+      <Choose
+        label="Pet"
+        items={(pets.data || []).filter((p) => p.customerId === customerId)}
+        value={petId}
+        onChange={setPetId}
+      />
+      <Card>
+        <Text style={s.title}>Serviços</Text>
+        {services.data?.map((item) => (
+          <Field
+            key={item.id}
+            label={`${item.name} · ${money(item.price)} · quantidade`}
+            keyboardType="number-pad"
+            value={quantities[item.id] || ""}
+            onChangeText={(q) => setQuantities((v) => ({ ...v, [item.id]: q }))}
+          />
+        ))}
+        <Field
+          label="Data do serviço (AAAA-MM-DD)"
+          value={serviceDate}
+          onChangeText={setServiceDate}
+        />
+        <Field
+          label="Vencimento (AAAA-MM-DD)"
+          value={dueDate}
+          onChangeText={setDueDate}
+        />
+        <Text style={s.title}>Total: {money(total)}</Text>
+        <Action
+          title={submit.busy ? "Emitindo…" : "Emitir boleto"}
+          disabled={submit.busy}
+          onPress={() =>
+            submit.run(async () => {
+              if (Object.values(quantities).some(value => value !== '' && (!Number.isInteger(Number(value)) || Number(value) < 0 || Number(value) > 100))) {
+                throw Error('Informe quantidades inteiras entre 0 e 100; zero remove o serviço.');
+              }
+              const items = (services.data || [])
+                .filter((i) => Number(quantities[i.id]) > 0)
+                .map((i) => ({
+                  serviceId: i.id,
+                  quantity: Number(quantities[i.id]),
+                }));
+              if (!account.data)
+                throw Error("Aguarde o carregamento da conta.");
+              if (
+                items.some(
+                  (item) =>
+                    !Number.isInteger(item.quantity) || item.quantity > 100,
+                )
+              )
+                throw Error("Informe quantidades inteiras entre 1 e 100.");
+              if (!customerId || !petId || !items.length)
+                throw Error("Selecione cliente, pet e serviços.");
+              const payload = {
+                customerId,
+                petId,
+                items,
+                serviceDate,
+                dueDate,
+              };
+              let attempt = JSON.parse(
+                (await AsyncStorage.getItem(attemptKey)) || "null",
+              );
+              if (
+                attempt &&
+                JSON.stringify(attempt.payload) !== JSON.stringify(payload)
+              )
+                throw Error(
+                  "Existe uma emissão pendente. Recupere a tentativa anterior ou confira o histórico antes de iniciar outra.",
+                );
+              if (!attempt) {
+                attempt = {
+                  key: `charge-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`,
+                  payload,
+                };
+                await AsyncStorage.setItem(attemptKey, JSON.stringify(attempt));
+              }
+              try {
+                const charge = await api.post("/admin/charges", payload, {
+                  headers: { "Idempotency-Key": attempt.key },
+                });
+                await AsyncStorage.removeItem(attemptKey);
+                navigation.navigate("Pagamento", { chargeId: charge.id });
+              } catch (error) {
+                if ([400, 404, 422].includes(error.status))
+                  await AsyncStorage.removeItem(attemptKey);
+                else {
+                  const id = error.message.match(/charge=(\d+)/)?.[1];
+                  if (id)
+                    await AsyncStorage.setItem(
+                      attemptKey,
+                      JSON.stringify({ ...attempt, chargeId: Number(id) }),
+                    );
+                }
+                throw error;
+              }
+            })
+          }
+        />
+        <Action
+          title="Recuperar formulário da tentativa pendente"
+          onPress={() =>
+            submit.run(async () => {
+              const attempt = JSON.parse(
+                (await AsyncStorage.getItem(attemptKey)) || "null",
+              );
+              if (!attempt) throw Error("Nenhuma tentativa pendente.");
+              const p = attempt.payload;
+              setCustomerId(p.customerId);
+              setPetId(p.petId);
+              setServiceDate(p.serviceDate);
+              setDueDate(p.dueDate);
+              setQuantities(
+                Object.fromEntries(
+                  p.items.map((i) => [i.serviceId, String(i.quantity)]),
+                ),
+              );
+            })
+          }
+        />
+        <Message>{submit.message}</Message>
+      </Card>
+      <Card>
+        <Text style={s.title}>Conciliar emissão existente</Text>
+        <Message>
+          Use o ID da cobrança no histórico e o ID do boleto confirmado no
+          banco. Esta ação não emite outro boleto.
+        </Message>
+        <Field
+          label="ID da cobrança"
+          value={reconcileId}
+          onChangeText={setReconcileId}
+        />
+        <Field
+          label="ID do boleto C6"
+          value={bankSlipId}
+          onChangeText={setBankSlipId}
+        />
+        <Action
+          title="Conciliar"
+          disabled={submit.busy}
+          onPress={() =>
+            submit.run(async () => {
+              const charge = await api.post(
+                `/admin/charges/${Number(reconcileId)}/reconcile?bankSlipId=${encodeURIComponent(bankSlipId)}`,
+                {},
+              );
+              const pending = JSON.parse(
+                (await AsyncStorage.getItem(attemptKey)) || "null",
+              );
+              if (pending?.chargeId === charge.id)
+                await AsyncStorage.removeItem(attemptKey);
+              navigation.navigate("Pagamento", { chargeId: charge.id });
+            })
+          }
+        />
+        <Action
+          title="Ver histórico de cobranças"
+          onPress={() => navigation.navigate("History")}
+        />
+      </Card>
+    </Page>
+  );
+}
