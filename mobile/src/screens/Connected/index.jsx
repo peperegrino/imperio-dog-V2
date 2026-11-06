@@ -202,3 +202,87 @@ export function NewPet({ navigation }) {
     </Page>
   );
 }
+export function Services({ navigation }) {
+  const resource = useResource("/admin/services"),
+    [values, setValues] = useState({}),
+    [editing, setEditing] = useState(null);
+  const submit = useSubmit();
+  return (
+    <Page title="Serviços e preços" navigation={navigation}>
+      <ResourceState resource={resource} />
+      <Message>
+        Cadastre cada modalidade ou porte como um serviço com seu preço.
+      </Message>
+      {resource.data?.map((service) => (
+        <Card key={service.id}>
+          <Text style={s.title}>{service.name}</Text>
+          <Text>{service.description}</Text>
+          <Text>{money(service.price)}</Text>
+          <Action
+            title="Editar"
+            onPress={() => {
+              setEditing(service.id);
+              setValues({ ...service, price: String(service.price) });
+            }}
+          />
+          <Action
+            title="Excluir"
+            disabled={submit.busy}
+            onPress={() =>
+              submit.run(async () => {
+                await api.delete(`/admin/services/${service.id}`);
+                await resource.reload();
+              })
+            }
+          />
+        </Card>
+      ))}
+      <Card>
+        <Text style={s.title}>
+          {editing ? "Editar serviço" : "Novo serviço"}
+        </Text>
+        <Fields
+          fields={[
+            ["name", "Nome"],
+            ["description", "Descrição"],
+            ["price", "Preço em reais"],
+          ]}
+          values={values}
+          setValues={setValues}
+        />
+        <Action
+          title="Salvar serviço"
+          disabled={submit.busy}
+          onPress={() =>
+            submit.run(async () => {
+              const payload = {
+                ...values,
+                price: Number(String(values.price || "").replace(",", ".")),
+              };
+              if (editing) await api.put(`/admin/services/${editing}`, payload);
+              else await api.post("/admin/services", payload);
+              setValues({});
+              setEditing(null);
+              await resource.reload();
+            })
+          }
+        />
+        {editing && (
+          <Action
+            title="Cancelar edição"
+            onPress={() => {
+              setEditing(null);
+              setValues({});
+            }}
+          />
+        )}
+        <Message>{submit.message}</Message>
+      </Card>
+    </Page>
+  );
+}
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const ATTEMPT = "@imperio-dog/charge-attempt";
