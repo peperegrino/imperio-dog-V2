@@ -16,3 +16,7 @@ target
 **/target
 *.log
 logs
+mobile/node_modules
+mobile/dist
+mobile/.expo
+mobile/.env*
