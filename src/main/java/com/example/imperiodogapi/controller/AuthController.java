@@ -15,9 +15,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final com.example.imperiodogapi.service.CustomerService customers;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, com.example.imperiodogapi.service.CustomerService customers) {
         this.authService = authService;
+        this.customers = customers;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<com.example.imperiodogapi.dto.CustomerResponseDTO> register(
+            @Valid @RequestBody com.example.imperiodogapi.dto.CustomerRequestDTO request) {
+        return ResponseEntity.status(201).body(customers.createCustomer(request));
     }
 
     @PostMapping("/login")
