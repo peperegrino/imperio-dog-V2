@@ -2,9 +2,9 @@
 
 Fonte do frontend: `origin/frontend`, commit `3fb6eb3`. O diretorio `mobile/` foi
 incorporado ao workspace local preservando as alteracoes financeiras locais.
-No GitHub, o frontend permanece na branch `frontend` e a API na branch `backend`,
-conforme a organizacao solicitada. As branches se integram por HTTP e nao foram
-mescladas. Cada branch tem seu proprio pipeline de validacao.
+As branches `frontend` e `backend` permanecem como linhas de desenvolvimento.
+A branch `main` reune ambos os conteudos e historicos: API na raiz e app em mobile/.
+O frontend se comunica com a API por HTTP; o pipeline integrado valida as duas partes.
 
 ## Comparacao e decisoes
 
@@ -26,8 +26,7 @@ referencia visual, mas as telas demonstrativas antigas nao sao as rotas em uso.
 
 ## Executar
 
-1. JDK 21, Node 24 e dois checkouts: um da branch `backend` para a API e outro da
-   branch `frontend` para o app. No checkout frontend, execute `cd mobile` e `npm ci`.
+1. JDK 21, Node 24 e um checkout da branch `main`. Execute `npm ci` em `mobile/`.
 2. Backend: preencha o `.env` da raiz com DB_URL/DB_USERNAME/DB_PASSWORD e configure
    ADMIN_EMAIL/ADMIN_PASSWORD para o primeiro administrador (senha >=12 caracteres).
 3. Banco novo e vazio: aplique `docs/sql/2026-11-initial-schema.sql` em uma transacao.
@@ -40,7 +39,7 @@ referencia visual, mas as telas demonstrativas antigas nao sao as rotas em uso.
    indices financeiros e compatibilidade com o Hibernate usando ddl-auto=validate.
    Nao foram inseridos usuarios nem dados de demonstracao. O .env local foi ajustado
    para DDL_AUTO=validate apos essa verificacao.
-4. Na raiz do checkout backend: `mvnw.cmd spring-boot:run` (ou `mvn spring-boot:run`).
+4. Na raiz do checkout main: `mvnw.cmd spring-boot:run` (ou `mvn spring-boot:run`).
 5. Copie `mobile/.env.example` para `mobile/.env.local`. Para navegador local,
    `EXPO_PUBLIC_API_URL=http://localhost:8080/api`.
 6. Em `mobile/`: `npm run web`. A origem padrao Expo `http://localhost:8081` esta

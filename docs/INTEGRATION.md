@@ -1,15 +1,15 @@
 # Frontend conectado a API
 
-Esta branch contem o aplicativo Expo em `mobile/`. A API Java/Spring Boot permanece
-na branch `backend` do mesmo repositorio. Utilize dois checkouts para executa-los
-simultaneamente; nao e necessario mesclar as branches.
+Na main integrada, o aplicativo Expo esta em `mobile/` e a API Java/Spring Boot na
+raiz do mesmo checkout. As branches `frontend` e `backend` continuam disponiveis
+para desenvolvimento separado.
 
 ## Executar
 
 1. Instale Node 24 e execute `npm ci` dentro de `mobile/`.
 2. Copie `mobile/.env.example` para `mobile/.env.local`.
 3. Configure `EXPO_PUBLIC_API_URL=http://localhost:8080/api` para navegador local.
-4. Inicie a API conforme a documentacao da branch backend.
+4. Inicie a API na raiz conforme o README do projeto.
 5. Execute `npm run web` em `mobile/` e abra a URL indicada pelo Expo.
 
 No celular, substitua localhost pelo IP LAN do computador que executa a API,
@@ -59,4 +59,4 @@ no CLI. A sugestao automatica inclui downgrade de SDK e nao foi aplicada; reaval
 as dependencias durante a atualizacao do Expo.
 
 Documentacao completa da API e scripts do banco:
-[branch backend](https://github.com/peperegrino/imperio-dog-V2/tree/backend/docs).
+[contratos e preparacao do banco](FRONTEND_BACKEND_INTEGRATION.md).
