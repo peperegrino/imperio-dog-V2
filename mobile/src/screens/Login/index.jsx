@@ -41,8 +41,8 @@ export default function LoginScreen({ navigation, route }) {
 
     setIsSubmitting(true);
     try {
-      const session = await signIn(email.trim(), senha);
-      navigation.replace(session.role === 'ADMIN' ? 'Admin' : 'Home');
+      await signIn(email.trim(), senha);
+
     } catch (error) {
       const message = error instanceof ApiError && error.status === 401
         ? 'Confira o e-mail e a senha e tente novamente.'
