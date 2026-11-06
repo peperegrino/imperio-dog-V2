@@ -114,3 +114,34 @@ export function CustomerForm({ navigation, signup = false }) {
     </Page>
   );
 }
+
+export function Pets({ navigation }) {
+  const { session } = useAuth();
+  const admin = session?.role === "ADMIN";
+  const resource = useResource(admin ? "/admin/pets" : "/account/pets");
+  return (
+    <Page title="Pets cadastrados" navigation={navigation}>
+      <ResourceState resource={resource} />
+      {!resource.loading && !resource.error && !resource.data?.length && (
+        <Message>Nenhum pet cadastrado.</Message>
+      )}
+      {resource.data?.map((p) => (
+        <Card key={p.id}>
+          <Text style={s.title}>{p.name}</Text>
+          <Text>
+            {p.species} · {p.breed}
+          </Text>
+          <Text>
+            {p.sex || ""} {p.weight ? `· ${p.weight} kg` : ""}
+          </Text>
+          <Text>Nascimento: {date(p.birthDate)}</Text>
+          <Text>{p.notes}</Text>
+        </Card>
+      ))}
+      <Action
+        title="Cadastrar pet"
+        onPress={() => navigation.navigate("NewPet")}
+      />
+    </Page>
+  );
+}
