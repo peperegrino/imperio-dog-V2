@@ -10,7 +10,9 @@
     "expo": "~58.0.21",
     "expo-blur": "~58.0.5",
     "expo-clipboard": "~58.0.4",
+    "expo-file-system": "~58.0.13",
     "expo-font": "~58.0.11",
+    "expo-sharing": "~58.0.22",
     "expo-status-bar": "~58.0.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -24,7 +26,16 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "build": "expo export --platform web"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~58.0.4",
+    "typescript": "~6.0.3"
+  }
 }
