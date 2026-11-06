@@ -482,3 +482,66 @@ export function Management({ navigation }) {
     </Page>
   );
 }
+
+export function ChargeList({ navigation, history = false }) {
+  const { session } = useAuth();
+  const admin = session?.role === "ADMIN";
+  const resource = useResource(
+    admin ? "/admin/charges" : "/charges/my-charges",
+  );
+  const [filter, setFilter] = useState("ALL");
+  return (
+    <Page title={history ? "Histórico" : "Cobranças"} navigation={navigation}>
+      <ResourceState resource={resource} />
+      <Choose
+        label="Filtrar"
+        items={[
+          { id: "ALL", name: "Todas" },
+          ...Object.entries(statusLabel).map(([id, name]) => ({ id, name })),
+        ]}
+        value={filter}
+        onChange={setFilter}
+      />
+      {resource.data
+        ?.filter((c) => filter === "ALL" || c.status === filter)
+        .map((c) => (
+          <Card key={c.id}>
+            <Text style={s.title}>
+              #{c.id} · {c.serviceName}
+            </Text>
+            <Text>
+              {c.customerName} · {c.petName}
+            </Text>
+            <Text>
+              {statusLabel[c.status]} · {money(c.amount)}
+            </Text>
+            <Text>Vencimento: {date(c.dueDate)}</Text>
+            {c.paymentDate && <Text>Pagamento: {date(c.paymentDate)}</Text>}
+            {c.issuanceState && c.issuanceState !== "ISSUED" && (
+              <Message>
+                {c.issuanceState === "UNKNOWN"
+                  ? "Emissão requer conciliação"
+                  : "Emissão em andamento ou requer conferência"}{" "}
+                · Referência: {c.externalReferenceId}
+              </Message>
+            )}
+            <Action
+              title="Ver detalhes"
+              onPress={() =>
+                navigation.navigate("Pagamento", { chargeId: c.id })
+              }
+            />
+          </Card>
+        ))}
+      {!resource.loading && !resource.error && !resource.data?.length && (
+        <Message>Nenhuma cobrança cadastrada.</Message>
+      )}
+      {admin && (
+        <Action
+          title="Nova cobrança"
+          onPress={() => navigation.navigate("Charges")}
+        />
+      )}
+    </Page>
+  );
+}
