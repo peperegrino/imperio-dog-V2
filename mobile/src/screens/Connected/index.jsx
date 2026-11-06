@@ -545,3 +545,54 @@ export function ChargeList({ navigation, history = false }) {
     </Page>
   );
 }
+export function Dashboard({ navigation }) {
+  const { session, signOut } = useAuth();
+  const admin = session?.role === "ADMIN";
+  const charges = useResource(admin ? "/admin/charges" : "/charges/my-charges"),
+    profile = useResource("/account/me");
+  return (
+    <Page
+      title={admin ? "Painel da equipe" : "Painel do tutor"}
+      navigation={navigation}
+    >
+      <ResourceState resource={charges} />
+      <ResourceState resource={profile} />
+      <Text style={s.title}>Olá, {profile.data?.name || ""}</Text>
+      {Object.entries(statusLabel).map(([status, label]) => {
+        const items = (charges.data || []).filter((c) => c.status === status);
+        return (
+          <Card key={status}>
+            <Text>
+              {label} · {items.length} cobranças
+            </Text>
+            <Text style={s.title}>
+              {money(items.reduce((sum, c) => sum + Number(c.amount), 0))}
+            </Text>
+          </Card>
+        );
+      })}
+      <Action
+        title="Cobranças"
+        onPress={() => navigation.navigate("Charges")}
+      />
+      <Action
+        title="Histórico"
+        onPress={() => navigation.navigate("History")}
+      />
+      <Action title="Meus pets" onPress={() => navigation.navigate("Pets")} />
+      {admin && (
+        <>
+          <Action
+            title="Cadastrar cliente"
+            onPress={() => navigation.navigate("Customers")}
+          />
+          <Action
+            title="Serviços e preços"
+            onPress={() => navigation.navigate("Services")}
+          />
+        </>
+      )}
+      <Action title="Sair" onPress={signOut} />
+    </Page>
+  );
+}
