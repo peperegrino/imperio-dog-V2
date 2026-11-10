@@ -1,7 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { api, ROLE_STORAGE_KEY, TOKEN_STORAGE_KEY } from '../services/api';
+import {
+  api,
+  ROLE_STORAGE_KEY,
+  SESSION_EXPIRATION_STORAGE_KEY,
+  TOKEN_STORAGE_KEY,
+} from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -42,15 +47,27 @@ export function AuthProvider({ children }) {
 
     async function restoreSession() {
       try {
-        const [token, role] = await AsyncStorage.multiGet([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY])
+        const [token, role, expiration] = await AsyncStorage.multiGet([
+          TOKEN_STORAGE_KEY,
+          ROLE_STORAGE_KEY,
+          SESSION_EXPIRATION_STORAGE_KEY,
+        ])
           .then((entries) => entries.map(([, value]) => value));
+        const expiresAt = expiration === null ? null : Number(expiration);
+        const expired = expiration === 'session'
+          || (expiration !== null
+            && (!Number.isFinite(expiresAt) || expiresAt <= Date.now()));
 
-        if (token && ['ADMIN', 'USER', 'TUTOR', 'CLIENT', 'CUSTOMER'].includes(role)) {
+        if (token && !expired && ['ADMIN', 'USER', 'TUTOR', 'CLIENT', 'CUSTOMER'].includes(role)) {
           if (active) {
             setSession({ token, role });
           }
-        } else if (token || role) {
-          await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
+        } else if (token || role || expiration) {
+          await AsyncStorage.multiRemove([
+            TOKEN_STORAGE_KEY,
+            ROLE_STORAGE_KEY,
+            SESSION_EXPIRATION_STORAGE_KEY,
+          ]);
         }
       } catch (error) {
         if (active) {
@@ -69,17 +86,25 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const signIn = useCallback(async (email, password) => {
+  const signIn = useCallback(async (email, password, rememberFor30Days = true) => {
     const response = await api.post('/auth/login', { email, password });
     const nextSession = getLoginDetails(response);
+    const expiresAt = rememberFor30Days
+      ? String(Date.now() + (30 * 24 * 60 * 60 * 1000))
+      : 'session';
 
     try {
       await AsyncStorage.multiSet([
         [TOKEN_STORAGE_KEY, nextSession.token],
         [ROLE_STORAGE_KEY, nextSession.role],
+        [SESSION_EXPIRATION_STORAGE_KEY, expiresAt],
       ]);
     } catch (error) {
-      await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
+      await AsyncStorage.multiRemove([
+        TOKEN_STORAGE_KEY,
+        ROLE_STORAGE_KEY,
+        SESSION_EXPIRATION_STORAGE_KEY,
+      ]);
       throw error;
     }
 
@@ -88,7 +113,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
+    await AsyncStorage.multiRemove([
+      TOKEN_STORAGE_KEY,
+      ROLE_STORAGE_KEY,
+      SESSION_EXPIRATION_STORAGE_KEY,
+    ]);
     setSession(null);
   }, []);
 

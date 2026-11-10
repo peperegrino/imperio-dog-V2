@@ -41,8 +41,7 @@ export default function LoginScreen({ navigation, route }) {
 
     setIsSubmitting(true);
     try {
-      await signIn(email.trim(), senha);
-
+      await signIn(email.trim(), senha, lembrar);
     } catch (error) {
       const message = error instanceof ApiError && error.status === 401
         ? 'Confira o e-mail e a senha e tente novamente.'
@@ -51,6 +50,13 @@ export default function LoginScreen({ navigation, route }) {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleForgotPassword() {
+    showAlert(
+      'Recuperação ainda não disponível',
+      'Ainda não existe fluxo de recuperação de senha no backend. A funcionalidade precisa ser implementada no endpoint correspondente antes de habilitar o envio de e-mails.',
+    );
   }
 
   return (
@@ -94,7 +100,7 @@ export default function LoginScreen({ navigation, route }) {
               <View style={styles.optionsSpacer} />
               <Pressable
                 accessibilityRole="link"
-                onPress={() => console.log('Esqueci minha senha')}
+                onPress={handleForgotPassword}
                 style={styles.forgotPasswordPressable}
               >
                 <Text style={styles.forgotPassword}>Esqueci minha senha</Text>

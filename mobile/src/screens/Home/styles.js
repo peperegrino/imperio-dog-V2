@@ -1,7 +1,16 @@
 import { StyleSheet } from 'react-native';
 
-import { colors } from '../../theme/colors';
+import { colors as themeColors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
+
+const colors = {
+  ...themeColors,
+  primary: '#722F37',
+  brown: '#B58C63',
+  textMuted: '#4A1F25',
+  textDark: '#332522',
+  background: '#FAF8F5',
+};
 
 export const styles = StyleSheet.create({
   safeArea: {
@@ -91,7 +100,7 @@ export const styles = StyleSheet.create({
     borderColor: '#EFE4D5',
   },
   vipText: {
-    color: '#8A6237',
+    color: colors.brown,
     fontFamily: typography.fontFamily.semibold,
     fontSize: 10,
   },
@@ -123,6 +132,11 @@ export const styles = StyleSheet.create({
   },
   petEmoji: {
     fontSize: 30,
+  },
+  petInitial: {
+    color: colors.primary,
+    fontFamily: typography.fontFamily.bold,
+    fontSize: 20,
   },
   petOnlineDot: {
     position: 'absolute',
@@ -206,7 +220,7 @@ export const styles = StyleSheet.create({
     borderColor: '#EFE4D5',
   },
   petActionSoftText: {
-    color: '#7B5733',
+    color: colors.textMuted,
     fontFamily: typography.fontFamily.semibold,
     fontSize: 10,
   },
@@ -231,10 +245,10 @@ export const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#B58B63',
+    backgroundColor: colors.brown,
   },
   inProgressText: {
-    color: '#8A6237',
+    color: colors.brown,
     fontFamily: typography.fontFamily.medium,
     fontSize: 9,
   },
@@ -267,7 +281,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FBF5E9',
   },
   serviceEmoji: {
-    color: '#8A6237',
+    color: colors.brown,
     fontSize: 17,
   },
   serviceDetails: {
@@ -304,6 +318,11 @@ export const styles = StyleSheet.create({
   statusPill_success: {
     backgroundColor: '#E8F8F2',
   },
+  statusPill_danger: {
+    backgroundColor: '#FFF0F0',
+    borderWidth: 1,
+    borderColor: '#F3D0D0',
+  },
   statusPill_resort: {
     backgroundColor: '#F8F0F2',
   },
@@ -317,10 +336,13 @@ export const styles = StyleSheet.create({
     color: '#525252',
   },
   statusText_warning: {
-    color: '#8A6237',
+    color: colors.brown,
   },
   statusText_success: {
     color: '#047857',
+  },
+  statusText_danger: {
+    color: '#A12A35',
   },
   statusText_resort: {
     color: colors.primary,
@@ -465,7 +487,7 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   chargeId: {
-    color: '#B58B63',
+    color: colors.brown,
     fontFamily: typography.fontFamily.bold,
     fontSize: 10,
   },
@@ -532,5 +554,58 @@ export const styles = StyleSheet.create({
   },
   footerSpacer: {
     height: 12,
+  },
+  loadingState: {
+    paddingVertical: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    color: colors.textGray,
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 12,
+  },
+  errorState: {
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFF8F8',
+    borderWidth: 1,
+    borderColor: '#F7D5D5',
+  },
+  errorText: {
+    color: colors.primary,
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 11,
+    lineHeight: 18,
+  },
+  retryButton: {
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+  },
+  retryButtonText: {
+    color: colors.white,
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: 11,
+  },
+  emptyStateCard: {
+    padding: 18,
+    marginBottom: 18,
+    borderRadius: 14,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: '#F0ECE7',
+  },
+  emptyStateText: {
+    color: colors.textGray,
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 11,
+    lineHeight: 18,
   },
 });

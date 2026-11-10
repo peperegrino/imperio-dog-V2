@@ -3,6 +3,7 @@ import { Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../services/api";
+import { showConfirm } from "../../utils/alert";
 import {
   Page,
   Card,
@@ -72,15 +73,27 @@ function useSubmit() {
 
 export function CustomerForm({ navigation, signup = false }) {
   const [values, setValues] = useState({}),
+    customers = useResource(signup ? null : "/admin/customers"),
     submit = useSubmit();
   const save = () =>
     submit.run(async () => {
-      if (!signup && values.petName?.trim()) {
-        await api.post('/admin/customers/with-pet', {customer:values,pet:{name:values.petName,species:'Cachorro',breed:values.petBreed||''}});
-      } else await api.post(signup ? "/auth/register" : "/admin/customers", values);
+      const { petName, petSpecies, petBreed, ...customer } = values;
+      if (!signup && petName?.trim()) {
+        await api.post("/admin/customers/with-pet", {
+          customer,
+          pet: {
+            name: petName.trim(),
+            species: petSpecies?.trim() || null,
+            breed: petBreed?.trim() || null,
+          },
+        });
+      } else {
+        await api.post(signup ? "/auth/register" : "/admin/customers", customer);
+      }
       if (signup) navigation.reset({index:0,routes:[{name:'Login',params:{registrationComplete:true}}]});
       else {
         setValues({});
+        await customers.reload();
         submit.setMessage(
           "Cadastro salvo. Consulte os pets ou cadastre outro tutor.",
         );
@@ -91,9 +104,24 @@ export function CustomerForm({ navigation, signup = false }) {
       title={signup ? "Criar conta" : "Cadastrar cliente"}
       navigation={navigation}
     >
+      {!signup && (
+        <>
+          <ResourceState resource={customers} />
+          {customers.data?.map((customer) => (
+            <Card key={customer.id}>
+              <Text style={s.title}>{customer.name}</Text>
+              <Text>{customer.email}</Text>
+              {customer.phone ? <Text>{customer.phone}</Text> : null}
+            </Card>
+          ))}
+          {!customers.loading && !customers.error && !customers.data?.length ? (
+            <Message>Nenhum cliente cadastrado.</Message>
+          ) : null}
+        </>
+      )}
       <Card>
         <Fields fields={customerFields} values={values} setValues={setValues} />
-        {!signup && <Fields fields={ [['petName','Nome do pet (opcional)'],['petBreed','Raça do pet']] } values={values} setValues={setValues}/>}
+        {!signup && <Fields fields={ [['petName','Nome do pet (opcional)'],['petSpecies','Espécie do pet'],['petBreed','Raça do pet']] } values={values} setValues={setValues}/>}
         <Message>
           Os dados de endereço e CPF são necessários para emissão de boletos. A
           conta criada é de tutor.
@@ -119,6 +147,35 @@ export function Pets({ navigation }) {
   const { session } = useAuth();
   const admin = session?.role === "ADMIN";
   const resource = useResource(admin ? "/admin/pets" : "/account/pets");
+  const [editingPet, setEditingPet] = useState(null);
+  const [values, setValues] = useState({});
+  const submit = useSubmit();
+
+  const savePet = () => submit.run(async () => {
+    const weight = String(values.weight || "").replace(",", ".");
+    await api.put(`/admin/pets/${editingPet.id}`, {
+      name: values.name,
+      species: values.species || null,
+      breed: values.breed || null,
+      customerId: editingPet.customerId,
+      sex: values.sex || null,
+      birthDate: values.birthDate || null,
+      weight: weight ? Number(weight) : null,
+      notes: values.notes || null,
+    });
+    setEditingPet(null);
+    setValues({});
+    await resource.reload();
+    submit.setMessage("Pet atualizado.");
+  });
+
+  const deletePet = (pet) => submit.run(async () => {
+    if (!(await showConfirm("Excluir pet?", `Deseja excluir ${pet.name}?`))) return;
+    await api.delete(`/admin/pets/${pet.id}`);
+    await resource.reload();
+    submit.setMessage("Pet excluído.");
+  });
+
   return (
     <Page title="Pets cadastrados" navigation={navigation}>
       <ResourceState resource={resource} />
@@ -129,15 +186,72 @@ export function Pets({ navigation }) {
         <Card key={p.id}>
           <Text style={s.title}>{p.name}</Text>
           <Text>
-            {p.species} · {p.breed}
+            {[p.species, p.breed].filter(Boolean).join(" · ") || "Espécie e raça não informadas"}
           </Text>
           <Text>
             {p.sex || ""} {p.weight ? `· ${p.weight} kg` : ""}
           </Text>
           <Text>Nascimento: {date(p.birthDate)}</Text>
           <Text>{p.notes}</Text>
+          {admin && (
+            <>
+              {editingPet?.id === p.id ? (
+                <>
+                  <Fields
+                    fields={[
+                      ["name", "Nome do pet"],
+                      ["species", "Espécie"],
+                      ["breed", "Raça"],
+                      ["sex", "Sexo"],
+                      ["birthDate", "Nascimento (AAAA-MM-DD)"],
+                      ["weight", "Peso em kg"],
+                      ["notes", "Observações"],
+                    ]}
+                    values={values}
+                    setValues={setValues}
+                  />
+                  <Action
+                    title="Salvar alterações"
+                    disabled={submit.busy}
+                    onPress={savePet}
+                  />
+                  <Action
+                    title="Cancelar edição"
+                    disabled={submit.busy}
+                    onPress={() => {
+                      setEditingPet(null);
+                      setValues({});
+                    }}
+                  />
+                </>
+              ) : (
+                <Action
+                  title="Editar pet"
+                  disabled={submit.busy}
+                  onPress={() => {
+                    setEditingPet(p);
+                    setValues({
+                      name: p.name || "",
+                      species: p.species || "",
+                      breed: p.breed || "",
+                      sex: p.sex || "",
+                      birthDate: p.birthDate || "",
+                      weight: p.weight == null ? "" : String(p.weight),
+                      notes: p.notes || "",
+                    });
+                  }}
+                />
+              )}
+              <Action
+                title="Excluir pet"
+                disabled={submit.busy}
+                onPress={() => deletePet(p)}
+              />
+            </>
+          )}
         </Card>
       ))}
+      <Message>{submit.message}</Message>
       <Action
         title="Cadastrar pet"
         onPress={() => navigation.navigate("NewPet")}
@@ -149,7 +263,7 @@ export function NewPet({ navigation }) {
   const { session } = useAuth();
   const admin = session?.role === "ADMIN";
   const customers = useResource(admin ? "/admin/customers" : "/account/me");
-  const [values, setValues] = useState({ species: "Cachorro" }),
+  const [values, setValues] = useState({}),
     [customerId, setCustomerId] = useState(null);
   const submit = useSubmit();
   return (
@@ -222,7 +336,11 @@ export function Services({ navigation }) {
             title="Editar"
             onPress={() => {
               setEditing(service.id);
-              setValues({ ...service, price: String(service.price) });
+              setValues({
+                name: service.name,
+                description: service.description || "",
+                price: String(service.price),
+              });
             }}
           />
           <Action
@@ -256,7 +374,8 @@ export function Services({ navigation }) {
           onPress={() =>
             submit.run(async () => {
               const payload = {
-                ...values,
+                name: values.name,
+                description: values.description || "",
                 price: Number(String(values.price || "").replace(",", ".")),
               };
               if (editing) await api.put(`/admin/services/${editing}`, payload);
@@ -513,7 +632,7 @@ export function ChargeList({ navigation, history = false }) {
               {c.customerName} · {c.petName}
             </Text>
             <Text>
-              {statusLabel[c.status]} · {money(c.amount)}
+              {statusLabel[c.status] || "Status não identificado"} · {money(c.amount)}
             </Text>
             <Text>Vencimento: {date(c.dueDate)}</Text>
             {c.paymentDate && <Text>Pagamento: {date(c.paymentDate)}</Text>}
@@ -607,7 +726,7 @@ export function Profile({ navigation }) {
         <Card>
           <Text style={s.title}>{resource.data.name}</Text>
           <Text>{resource.data.email}</Text>
-          <Text>CPF: {resource.data.cpf}</Text>
+          <Text>CPF: {resource.data.cpf || "Não informado"}</Text>
           <Field
             label="Nome"
             value={values?.name ?? resource.data.name}
@@ -627,7 +746,11 @@ export function Profile({ navigation }) {
             disabled={submit.busy}
             onPress={() =>
               submit.run(async () => {
-                await api.put("/account/me", values || resource.data);
+                const profile = values || resource.data;
+                await api.put("/account/me", {
+                  name: profile.name,
+                  phone: profile.phone || null,
+                });
                 await resource.reload();
                 submit.setMessage("Perfil atualizado.");
               })

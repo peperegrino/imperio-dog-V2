@@ -8,9 +8,9 @@ import { Platform, StyleSheet, Text, View } from "react-native";
 
 import FontLoading from "../components/FontLoading";
 import LoginScreen from "../screens/Login";
+import HomeScreen from "../screens/Home";
 import { useAuth } from "../contexts/AuthContext";
 import {
-  Dashboard,
   CustomerForm,
   Pets,
   NewPet,
@@ -20,6 +20,7 @@ import {
   Profile,
 } from "../screens/Connected";
 import Payment from "../screens/Connected/Payment";
+import AdminScreen from "../screens/Admin";
 import { setUnauthorizedHandler } from "../services/api";
 import { colors } from "../theme/colors";
 
@@ -113,10 +114,11 @@ export default function Navigation() {
               </>
             ) : (
               <>
-                <Stack.Screen
-                  name={session.role === "ADMIN" ? "Admin" : "Home"}
-                  component={Dashboard}
-                />
+                {session.role === "ADMIN" ? (
+                  <Stack.Screen name="Admin" component={AdminScreen} />
+                ) : (
+                  <Stack.Screen name="Home" component={HomeScreen} />
+                )}
                 {session.role === "ADMIN" && (
                   <>
                     <Stack.Screen name="Customers" component={CustomerForm} />

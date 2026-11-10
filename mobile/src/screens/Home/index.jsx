@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StatusBar,
@@ -7,30 +8,27 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { SvgXml } from 'react-native-svg';
 
 import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
 import { useAuth } from '../../contexts/AuthContext';
-import { charges } from '../../data/charges';
+import { api } from '../../services/api';
 import { styles } from './styles';
 import { showAlert, showConfirm } from '../../utils/alert';
 import {
   bellXml,
   calendarXml,
-  careXml,
   historyXml,
   receiptXml,
   viewBoletoXml,
-  payBoletoXml,
-  foodXml,
-  vipXml,
 } from './svgIcons';
 
 const filters = [
-  { key: 'all', label: 'Todas (4)' },
-  { key: 'pending', label: 'Pendentes (2)' },
-  { key: 'paid', label: 'Pagas (2)' },
-  { key: 'services', label: 'Serviços' },
+  { key: 'all', label: 'Todas' },
+  { key: 'pending', label: 'Pendentes' },
+  { key: 'overdue', label: 'Vencidas' },
+  { key: 'paid', label: 'Pagas' },
 ];
 
 function Icon({ xml, size = 16 }) {
@@ -47,43 +45,65 @@ function StatusPill({ children, tone = 'neutral' }) {
   );
 }
 
+function toCurrency(value) {
+  return Number(value || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+}
+
+function formatDate(value) {
+  if (typeof value !== 'string') return '';
+  const date = value.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
+  const [year, month, day] = date.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function getChargeStatus(status) {
+  const value = String(status || '').toUpperCase();
+  if (value === 'PAID') return { filter: 'paid', label: 'Pago', tone: 'success' };
+  if (value === 'OVERDUE') return { filter: 'overdue', label: 'Vencido', tone: 'danger' };
+  if (value === 'PAYMENT_IN_PROCESS') {
+    return { filter: 'pending', label: 'Em processamento', tone: 'warning' };
+  }
+  if (value === 'PENDING') return { filter: 'pending', label: 'Pendente', tone: 'warning' };
+  if (value === 'CANCELED') return { filter: 'cancelled', label: 'Cancelado', tone: 'neutral' };
+  return { filter: 'unknown', label: 'Status não identificado', tone: 'neutral' };
+}
+
+function filterCharges(charges, filter) {
+  if (filter === 'all') return charges;
+  return charges.filter((charge) => getChargeStatus(charge.status).filter === filter);
+}
+
 function ChargeCard({ charge, onOpenCharges }) {
-  const isPending = charge.status === 'pending';
+  const status = getChargeStatus(charge.status);
+  const dueDate = formatDate(charge.dueDate);
 
   return (
     <View style={styles.chargeCard}>
       <View style={styles.chargeCardTop}>
         <Text style={styles.chargeId}>#{charge.id}</Text>
-        <StatusPill tone={isPending ? 'warning' : 'success'}>
-          {charge.statusLabel}
-        </StatusPill>
+        <StatusPill tone={status.tone}>{status.label}</StatusPill>
       </View>
-      <Text style={styles.chargeTitle}>{charge.title}</Text>
-      <Text style={styles.chargeDescription}>{charge.description}</Text>
+      <Text style={styles.chargeTitle}>{charge.serviceName || 'Cobrança'}</Text>
+      <Text style={styles.chargeDescription}>
+        {charge.petName ? `${charge.petName} · ` : ''}
+        {dueDate ? `Vencimento ${dueDate}` : 'Vencimento não informado'}
+      </Text>
       <View style={styles.chargeDivider} />
       <View style={styles.chargeFooter}>
         <View>
-          {isPending ? <Text style={styles.amountCaption}>Total</Text> : null}
-          <Text style={styles.chargeAmount}>{charge.amount}</Text>
+          <Text style={styles.amountCaption}>Total</Text>
+          <Text style={styles.chargeAmount}>{toCurrency(charge.amount)}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
           onPress={onOpenCharges}
-          style={[styles.chargeAction, isPending && styles.chargeActionPrimary]}
+          style={styles.chargeAction}
         >
-          {isPending ? (
-            <Icon xml={payBoletoXml} size={12} />
-          ) : (
-            <Text style={styles.downloadMark}>↓</Text>
-          )}
-          <Text
-            style={[
-              styles.chargeActionText,
-              isPending && styles.chargeActionTextPrimary,
-            ]}
-          >
-            {isPending ? 'Ver boleto' : 'Comprovante Oficial'}
-          </Text>
+          <Text style={styles.chargeActionText}>Ver cobrança</Text>
         </Pressable>
       </View>
     </View>
@@ -93,29 +113,69 @@ function ChargeCard({ charge, onOpenCharges }) {
 export default function HomeScreen({ navigation }) {
   const { signOut } = useAuth();
   const [activeFilter, setActiveFilter] = useState('all');
-  const pendingCharges = charges.filter((charge) => charge.status === 'pending');
-  const visibleCharges = useMemo(() => {
-    if (activeFilter === 'all' || activeFilter === 'services') {
-      return charges;
+  const [profile, setProfile] = useState(null);
+  const [pets, setPets] = useState([]);
+  const [charges, setCharges] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const isFocused = useRef(false);
+
+  const load = useCallback(async () => {
+    if (!isFocused.current) return;
+    setLoading(true);
+    setError('');
+    try {
+      const [profileData, petsData, chargesData] = await Promise.all([
+        api.get('/account/me'),
+        api.get('/account/pets'),
+        api.get('/charges/my-charges'),
+      ]);
+
+      if (!profileData || typeof profileData !== 'object' || Array.isArray(profileData)) {
+        throw new Error('A API retornou um perfil inválido.');
+      }
+      if (!Array.isArray(petsData) || !Array.isArray(chargesData)) {
+        throw new Error('A API retornou uma lista de pets ou cobranças inválida.');
+      }
+
+      if (!isFocused.current) return;
+      setProfile(profileData);
+      setPets(petsData);
+      setCharges(chargesData);
+    } catch (e) {
+      if (isFocused.current) {
+        setError(e.message || 'Não foi possível carregar os dados do tutor.');
+      }
+    } finally {
+      if (isFocused.current) setLoading(false);
     }
+  }, []);
 
-    return charges.filter((charge) => charge.status === activeFilter);
-  }, [activeFilter]);
-  const hasPendingCharges = pendingCharges.length > 0;
+  useFocusEffect(
+    useCallback(() => {
+      isFocused.current = true;
+      void load();
+      return () => {
+        isFocused.current = false;
+      };
+    }, [load]),
+  );
+
+  const openChargesForTutor = charges.filter((charge) => (
+    ['PENDING', 'PAYMENT_IN_PROCESS', 'OVERDUE'].includes(charge.status)
+  ));
+  const visibleCharges = useMemo(() => {
+    return filterCharges(charges, activeFilter);
+  }, [activeFilter, charges]);
+
+  const hasPendingCharges = openChargesForTutor.length > 0;
+  const currentCharge = openChargesForTutor[0] || charges[0] || null;
+  const currentChargeStatus = currentCharge ? getChargeStatus(currentCharge.status) : null;
+  const currentChargeDueDate = currentCharge ? formatDate(currentCharge.dueDate) : '';
+
   const openCharges = () => {
-  const invoices = charges.map((charge) => ({
-    dueDate: charge.description.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] || '',
-    dateLabel: charge.status === 'pending' ? 'Vencimento' : 'Pago em',
-    title: charge.title,
-    status: charge.status === 'pending' ? 'pendente' : 'pago',
-    amount: charge.amount,
-  }));
-
-  navigation.navigate('Charges', {
-    homeRoute: 'Home',
-    invoices,
-  });
-};
+    navigation.navigate('Charges', { homeRoute: 'Home' });
+  };
 
   async function sair() {
     try {
@@ -138,7 +198,7 @@ export default function HomeScreen({ navigation }) {
           <Pressable
             accessibilityLabel={
               hasPendingCharges
-                ? `${pendingCharges.length} cobranças pendentes`
+              ? `${openChargesForTutor.length} cobranças em aberto`
                 : 'Notificações'
             }
             accessibilityRole="button"
@@ -167,165 +227,170 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.intro}>
-          <View style={styles.introHeading}>
-            <Text style={styles.greeting}>Olá, Mariana</Text>
-            <View style={styles.vipPill}>
-              <Icon xml={vipXml} size={11} />
-              <Text style={styles.vipText}>VIP</Text>
-            </View>
+        {loading ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator color="#722F37" />
+            <Text style={styles.loadingText}>Carregando dados do tutor...</Text>
           </View>
-          <Text style={styles.introDescription}>
-            Gerencie a hospedagem do Thor, mimos contratados e faturas com total
-            conveniência.
-          </Text>
-        </View>
-
-        <View style={styles.petCard}>
-          <View style={styles.petAvatar}>
-            <Text style={styles.petEmoji}>🐶</Text>
-            <View style={styles.petOnlineDot} />
+        ) : error ? (
+          <View style={styles.errorState}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void load()}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>Tentar novamente</Text>
+            </Pressable>
           </View>
-          <View style={styles.petDetails}>
-            <View style={styles.petHeading}>
-              <Text style={styles.petName}>Thor</Text>
-              <StatusPill tone="resort">No Resort</StatusPill>
-            </View>
-            <Text style={styles.petDescription}>
-              Hospedado na Suíte Master 04
-            </Text>
-            <View style={styles.petDates}>
-              <Icon xml={calendarXml} size={11} />
-              <Text style={styles.petDatesText}>
-                25 Out – 02 Nov (Restam 2 dias)
+        ) : (
+          <>
+            <View style={styles.intro}>
+              <View style={styles.introHeading}>
+                <Text style={styles.greeting}>Olá, {profile?.name || 'Tutor'}</Text>
+              </View>
+              <Text style={styles.introDescription}>
+                {pets.length
+                  ? `Você possui ${pets.length} pet${pets.length > 1 ? 's' : ''} cadastrado${pets.length > 1 ? 's' : ''}.`
+                  : 'Ainda não há pets cadastrados para este tutor.'}
               </Text>
             </View>
-          </View>
-          <View style={styles.petActions}>
-            <Pressable
-              onPress={() => navigation.navigate('Pets', { homeRoute: 'Home' })}
-              style={styles.petActionSecondary}
-            >
-              <Text style={styles.petActionSecondaryText}>Ver detalhes</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => navigation.navigate('History', { homeRoute: 'Home' })}
-              style={styles.petActionSoft}
-            >
-              <Icon xml={historyXml} size={12} />
-              <Text style={styles.petActionSoftText}>Histórico</Text>
-            </Pressable>
-          </View>
-        </View>
 
-        <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Mimos & Cuidados Inclusos</Text>
-          <View style={styles.inProgressLabel}>
-            <View style={styles.brownDot} />
-            <Text style={styles.inProgressText}>3 em andamento</Text>
-          </View>
-        </View>
+            {pets.length ? pets.map((pet) => (
+              <View key={pet.id} style={styles.petCard}>
+                <View style={styles.petAvatar}>
+                  <Text style={styles.petInitial}>{pet.name?.trim()?.[0]?.toUpperCase() || 'P'}</Text>
+                </View>
+                <View style={styles.petDetails}>
+                  <Text style={styles.petName}>{pet.name || 'Pet sem nome'}</Text>
+                  <Text style={styles.petDescription}>
+                    {[pet.species, pet.breed].filter(Boolean).join(' · ') || 'Espécie não informada'}
+                  </Text>
+                  {formatDate(pet.birthDate) ? (
+                    <View style={styles.petDates}>
+                      <Icon xml={calendarXml} size={11} />
+                      <Text style={styles.petDatesText}>Nascimento: {formatDate(pet.birthDate)}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <View style={styles.petActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => navigation.navigate('Pets', { homeRoute: 'Home' })}
+                    style={styles.petActionSecondary}
+                  >
+                    <Text style={styles.petActionSecondaryText}>Ver detalhes</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => navigation.navigate('History', { homeRoute: 'Home' })}
+                    style={styles.petActionSoft}
+                  >
+                    <Icon xml={historyXml} size={12} />
+                    <Text style={styles.petActionSoftText}>Histórico</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )) : (
+              <View style={styles.emptyStateCard}>
+                <Text style={styles.emptyStateText}>Nenhum pet cadastrado no momento.</Text>
+              </View>
+            )}
 
-        <View style={styles.serviceCard}>
-          <View style={styles.serviceIconBath}>
-            <Icon xml={careXml} size={18} />
-          </View>
-          <View style={styles.serviceDetails}>
-            <Text style={styles.serviceTitle}>Banho Relaxante</Text>
-            <Text style={styles.serviceDescription}>
-              Agendado para amanhã às 10:30 com Dr. Valter.
-            </Text>
-          </View>
-          <StatusPill tone="success">Confirmado</StatusPill>
-        </View>
-
-        <View style={styles.serviceCard}>
-          <View style={styles.serviceIconFood}>
-            <Icon xml={foodXml} size={16} />
-          </View>
-          <View style={styles.serviceDetails}>
-            <Text style={styles.serviceTitle}>Cardápio Natural</Text>
-            <Text style={styles.serviceDescription}>
-              2 porções diárias de carne magra e legumes no vapor
-            </Text>
-          </View>
-          <StatusPill>Em curso</StatusPill>
-        </View>
-
-        <View style={styles.currentChargeCard}>
-          <View style={styles.currentChargeTop}>
-            <View style={styles.currentChargeLabel}>
-              <View style={styles.primaryDot} />
-              <Text style={styles.currentChargeTitle}>COBRANÇA ATUAL</Text>
+            <View style={styles.sectionHeading}>
+              <Text style={styles.sectionTitle}>Meus pets</Text>
+              <View style={styles.inProgressLabel}>
+                <View style={styles.brownDot} />
+                <Text style={styles.inProgressText}>{pets.length} pet{pets.length === 1 ? '' : 's'}</Text>
+              </View>
             </View>
-            <StatusPill tone="warning">Vence em 2 dias</StatusPill>
-          </View>
-          <View style={styles.currentChargeDivider} />
-          <View style={styles.totalRow}>
-            <View>
-              <Text style={styles.amountCaption}>VALOR TOTAL</Text>
-              <Text style={styles.currentAmount}>R$ 1.280,00</Text>
-            </View>
-            <Pressable onPress={openCharges} style={styles.pdfButton}>
-              <Icon xml={receiptXml} size={12} />
-              <Text style={styles.pdfText}>PDF</Text>
-            </Pressable>
-          </View>
-          <Text style={styles.currentChargeDescription}>
-            5 diárias em Suíte Master Imperial + Day Care VIP e Banho Premium
-          </Text>
-          <Pressable onPress={openCharges} style={styles.boletoButton}>
-            <Icon xml={viewBoletoXml} size={15} />
-            <Text style={styles.boletoText}>Visualizar boleto</Text>
-          </Pressable>
-        </View>
 
-        <View style={styles.historyHeading}>
-          <Text style={styles.sectionTitle}>Histórico & Cobranças</Text>
-        </View>
-        <ScrollView
-          horizontal
-          contentContainerStyle={styles.filterList}
-          showsHorizontalScrollIndicator={false}
-        >
-          {filters.map((filter) => {
-            const selected = filter.key === activeFilter;
-
-            return (
-              <Pressable
-                accessibilityRole="button"
-                key={filter.key}
-                onPress={() => setActiveFilter(filter.key)}
-                style={[styles.filterPill, selected && styles.filterPillActive]}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    selected && styles.filterTextActive,
-                  ]}
-                >
-                  {filter.label}
+            {currentCharge ? (
+              <View style={styles.currentChargeCard}>
+                <View style={styles.currentChargeTop}>
+                  <View style={styles.currentChargeLabel}>
+                    <View style={styles.primaryDot} />
+                    <Text style={styles.currentChargeTitle}>COBRANÇA ATUAL</Text>
+                  </View>
+                  <StatusPill tone={currentChargeStatus.tone}>{currentChargeStatus.label}</StatusPill>
+                </View>
+                <View style={styles.currentChargeDivider} />
+                <View style={styles.totalRow}>
+                  <View>
+                    <Text style={styles.amountCaption}>VALOR TOTAL</Text>
+                    <Text style={styles.currentAmount}>{toCurrency(currentCharge.amount)}</Text>
+                  </View>
+                  <Pressable onPress={openCharges} style={styles.pdfButton}>
+                    <Icon xml={receiptXml} size={12} />
+                    <Text style={styles.pdfText}>Detalhes</Text>
+                  </Pressable>
+                </View>
+                <Text style={styles.currentChargeDescription}>
+                  {currentCharge.serviceName || 'Cobrança'}
+                  {currentChargeDueDate ? ` · vencimento ${currentChargeDueDate}` : ''}
                 </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+                <Pressable onPress={openCharges} style={styles.boletoButton}>
+                  <Icon xml={viewBoletoXml} size={15} />
+                  <Text style={styles.boletoText}>Ver cobranças</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.emptyStateCard}>
+                <Text style={styles.emptyStateText}>Nenhuma cobrança disponível no momento.</Text>
+              </View>
+            )}
 
-        {visibleCharges.map((charge) => (
-          <ChargeCard
-            charge={charge}
-            key={charge.id}
-            onOpenCharges={openCharges}
-          />
-        ))}
+            <View style={styles.historyHeading}>
+              <Text style={styles.sectionTitle}>Histórico & Cobranças</Text>
+            </View>
+            <ScrollView
+              horizontal
+              contentContainerStyle={styles.filterList}
+              showsHorizontalScrollIndicator={false}
+            >
+              {filters.map((filter) => {
+                const selected = filter.key === activeFilter;
 
-        <View style={styles.footerSpacer} />
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    key={filter.key}
+                    onPress={() => setActiveFilter(filter.key)}
+                    style={[styles.filterPill, selected && styles.filterPillActive]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterText,
+                        selected && styles.filterTextActive,
+                      ]}
+                    >
+                      {filter.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {visibleCharges.length ? (
+              visibleCharges.map((charge) => (
+                <ChargeCard
+                  charge={charge}
+                  key={charge.id}
+                  onOpenCharges={openCharges}
+                />
+              ))
+            ) : (
+              <View style={styles.emptyStateCard}>
+                <Text style={styles.emptyStateText}>Nenhuma cobrança para este filtro.</Text>
+              </View>
+            )}
+
+            <View style={styles.footerSpacer} />
+          </>
+        )}
       </ScrollView>
 
-      <AppNavigation
-        activeRoute="Home"
-        navigation={navigation}
-      />
+      <AppNavigation activeRoute="Home" navigation={navigation} />
     </SafeAreaView>
   );
 }

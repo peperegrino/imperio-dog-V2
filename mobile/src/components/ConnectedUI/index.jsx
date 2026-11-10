@@ -33,6 +33,13 @@ export function useResource(path) {
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
   const reload = useCallback(async () => {
+    if (!path) {
+      setData(null);
+      setError("");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
