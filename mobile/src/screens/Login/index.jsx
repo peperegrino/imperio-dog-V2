@@ -13,6 +13,7 @@ import Button from '../../components/Button';
 import Checkbox from '../../components/Checkbox';
 import Input from '../../components/Input';
 import LogoHeader from '../../components/LogoHeader';
+import RoleTabs from '../../components/RoleTabs';
 import SecurityFooter from '../../components/SecurityFooter';
 import { useAuth } from '../../contexts/AuthContext';
 import { ApiError } from '../../services/api';
@@ -23,6 +24,7 @@ export default function LoginScreen({ navigation, route }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [perfilAtivo, setPerfilAtivo] = useState('tutor');
   const [lembrar, setLembrar] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn } = useAuth();
@@ -41,7 +43,7 @@ export default function LoginScreen({ navigation, route }) {
 
     setIsSubmitting(true);
     try {
-      await signIn(email.trim(), senha);
+      await signIn(email.trim(), senha, lembrar);
 
     } catch (error) {
       const message = error instanceof ApiError && error.status === 401
@@ -68,6 +70,7 @@ export default function LoginScreen({ navigation, route }) {
           <LogoHeader />
 
           <View style={styles.formCard}>
+            <RoleTabs activeRole={perfilAtivo} onChange={setPerfilAtivo} />
             <View style={styles.emailField}>
               <Input
                 label="E-mail cadastrado"
@@ -90,11 +93,11 @@ export default function LoginScreen({ navigation, route }) {
             </View>
             <View style={styles.optionsRow}>
               <Checkbox checked={lembrar} onPress={() => setLembrar((value) => !value)} />
-              <Text style={styles.rememberLabel}>Lembrar por 30 dias</Text>
+              <Text style={styles.rememberLabel}>Manter sessão</Text>
               <View style={styles.optionsSpacer} />
               <Pressable
                 accessibilityRole="link"
-                onPress={() => console.log('Esqueci minha senha')}
+                onPress={() => showAlert('Recuperação de senha', 'A recuperação por e-mail ainda não está disponível.')}
                 style={styles.forgotPasswordPressable}
               >
                 <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
