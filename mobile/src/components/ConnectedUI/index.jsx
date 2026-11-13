@@ -133,12 +133,12 @@ export function Choose({ label, items, value, onChange }) {
     </Card>
   );
 }
-export function Page({ title, navigation, children }) {
+export function Page({ title, navigation, children, presentation }) {
   const { session } = useAuth();
   const homeRoute = session?.role === "ADMIN" ? "Admin" : "Home";
   return (
-    <SafeAreaView style={s.page}>
-      <View style={s.header}>
+    <SafeAreaView style={[s.page, presentation?.screen]}>
+      <View style={[s.header, presentation?.header]}>
         <Pressable
           accessibilityRole="button"
           onPress={() =>
@@ -149,12 +149,12 @@ export function Page({ title, navigation, children }) {
         >
           <Text style={s.label}>‹ Voltar</Text>
         </Pressable>
-        <Text style={s.title}>{title}</Text>
+        <Text style={[s.title, presentation?.headerTitle]}>{title}</Text>
         {session && <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Profile", { homeRoute })}><Text style={s.label}>Perfil</Text></Pressable>}
       </View>
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={s.content}
+        contentContainerStyle={[s.content, presentation?.content]}
       >
         {children}
       </ScrollView>

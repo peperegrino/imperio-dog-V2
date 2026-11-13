@@ -16,7 +16,14 @@ import { api } from '../../services/api';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { styles } from './styles';
 
+const addressFields = [
+  ['phone', 'Telefone'], ['cpf', 'CPF'], ['zipCode', 'CEP'],
+  ['streetName', 'Rua'], ['streetNumber', 'Número'], ['neighborhood', 'Bairro'],
+  ['city', 'Cidade'], ['federalUnit', 'UF'],
+];
+
 export default function SignupScreen({ navigation }) {
+  const [address, setAddress] = useState({});
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +32,7 @@ export default function SignupScreen({ navigation }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const hasChanges = Boolean(name || email || password || confirmPassword);
+  const hasChanges = Boolean(name || email || password || confirmPassword || Object.values(address).some(Boolean));
 
   async function discardSignup() {
     if (hasChanges && !(await showConfirm(
@@ -68,6 +75,7 @@ export default function SignupScreen({ navigation }) {
         name: name.trim(),
         email: normalizedEmail,
         password,
+        ...address,
       });
       navigation.reset({
         index: 0,
@@ -138,6 +146,12 @@ export default function SignupScreen({ navigation }) {
               />
             </View>
 
+            {addressFields.map(([key, label]) => (
+              <View key={key} style={styles.field}>
+                <Input label={label} value={address[key] || ''}
+                  onChangeText={(value) => setAddress((previous) => ({ ...previous, [key]: value }))} />
+              </View>
+            ))}
             <View style={styles.submitButton}>
               <Button
                 label={isSubmitting ? 'Criando conta...' : 'Criar conta'}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -16,94 +16,12 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { colors } from '../../theme/colors';
 
+import { api } from '../../services/api';
+import { ResourceState, useResource } from '../../components/ConnectedUI';
+import { showConfirm } from '../../utils/alert';
 import { styles } from './styles';
 
-const INITIAL_SERVICES = [
-  {
-    id: 'bath',
-    name: 'Banho Terapêutico',
-    category: 'Estética & Spa',
-    description: 'Higiene completa com água termorregulada, produtos hipoalergênicos e secagem acústica assistida.',
-    rule: 'Variação por porte do animal',
-    icon: 'bath',
-    layout: 'grid',
-    rates: [
-      { label: 'Pequeno', amount: '70,00' },
-      { label: 'Médio', amount: '90,00' },
-      { label: 'Grande', amount: '120,00' },
-    ],
-  },
-  {
-    id: 'grooming',
-    name: 'Tosa Especializada',
-    category: 'Estética & Spa',
-    description: 'Modelagem da raça, tosa higiênica e corte na tesoura conforme orientação cinófila e padrão estético.',
-    rule: 'Variação por porte e modalidade',
-    icon: 'scissors',
-    layout: 'grid',
-    rates: [
-      { label: 'Pequeno', amount: '80,00' },
-      { label: 'Médio', amount: '100,00' },
-      { label: 'Grande', amount: '130,00' },
-    ],
-  },
-  {
-    id: 'boarding',
-    name: 'Hospedagem Imperial',
-    category: 'Hospedagem',
-    description: 'Estadia climatizada 24h, monitoramento por câmeras, alimentação assistida e passeios diários em parque verde.',
-    rule: 'Modelo de diária ou período prolongado',
-    icon: 'bed',
-    layout: 'rows',
-    rates: [
-      { label: 'Diária Padrão', amount: '150,00', unit: '/ dia' },
-      { label: 'Diária Master VIP', amount: '210,00', unit: '/ dia' },
-      { label: 'Pacote Semanal', amount: '950,00', unit: '/ sem' },
-    ],
-  },
-  {
-    id: 'daycare',
-    name: 'Day Care / Creche',
-    category: 'Day Care',
-    description: 'Socialização equilibrada, estimulação cognitiva e atividades recreativas com monitores cinotécnicos.',
-    rule: 'Cobrança flexível por turno ou mensalidade',
-    icon: 'sun',
-    layout: 'rows',
-    rates: [
-      { label: 'Meio Período', amount: '65,00', unit: '/ turno' },
-      { label: 'Diária Completa', amount: '110,00', unit: '/ dia' },
-      { label: 'Mensalidade Recorrente', amount: '780,00', unit: '/ mês' },
-    ],
-  },
-  {
-    id: 'spa',
-    name: 'Spa Canino & Bem-Estar',
-    category: 'Estética & Spa',
-    description: 'Banho relaxante de ofurô, massagem suave e cuidados especiais de bem-estar para aliviar o estresse do seu cão.',
-    rule: 'Sessão avulsa ou pacote de bem-estar',
-    icon: 'leaf',
-    layout: 'rows',
-    rates: [
-      { label: 'Sessão Única Especial', amount: '140,00' },
-      { label: 'Pacote Bem-Estar (4 Sessões)', amount: '480,00' },
-    ],
-  },
-  {
-    id: 'transport',
-    name: 'Transporte (Leva & Traz)',
-    category: 'Transporte',
-    description: 'Transporte privativo climatizado com caixas seguras individualizadas, motoristas especializados e pontualidade garantida para o seu pet.',
-    rule: 'Cobrança por raio/zona ou trajeto',
-    icon: 'car',
-    layout: 'grid',
-    rates: [
-      { label: 'Raio até 10km', amount: '45,00' },
-      { label: 'Raio até 20km', amount: '75,00' },
-    ],
-  },
-];
 
-const CATEGORIES = ['Estética & Spa', 'Hospedagem', 'Day Care', 'Transporte'];
 
 function Icon({ name, size = 20, color = colors.primary }) {
   const common = { stroke: color, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
@@ -209,32 +127,30 @@ function ServiceCard({ service, onEdit }) {
 export default function ServicesScreen({ navigation, route }) {
   const homeRoute = route.params?.homeRoute || 'Admin';
   const insets = useSafeAreaInsets();
-  const [services, setServices] = useState(INITIAL_SERVICES);
-  const [activeCategory, setActiveCategory] = useState('Todos');
+  const resource = useResource('/admin/services');
+  const services = (resource.data || []).map((service) => ({
+    ...service, icon: 'categories', layout: 'rows',
+    rates: [{ label: 'Preço', amount: String(service.price), unit: '' }],
+  }));
+  const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState('');
   const [editingService, setEditingService] = useState(null);
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
-  const [formCategory, setFormCategory] = useState('Estética & Spa');
-  const [formRates, setFormRates] = useState([]);
+  const [price, setPrice] = useState('');
   const [formVisible, setFormVisible] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
 
-  const filteredServices = useMemo(() => services.filter((service) => {
-    const matchesCategory = activeCategory === 'Todos' || service.category === activeCategory;
-    const term = query.trim().toLocaleLowerCase('pt-BR');
-    const matchesQuery = !term || `${service.name} ${service.category} ${service.description}`
-      .toLocaleLowerCase('pt-BR')
-      .includes(term);
-    return matchesCategory && matchesQuery;
-  }), [activeCategory, query, services]);
+  const filteredServices = services.filter((service) =>
+    [service.name, service.description].filter(Boolean).join(' ')
+      .toLocaleLowerCase('pt-BR').includes(query.trim().toLocaleLowerCase('pt-BR'))
+  );
 
   const openEdit = (service) => {
     setEditingService(service);
     setFormName(service?.name || '');
     setFormDescription(service?.description || '');
-    setFormCategory(service?.category || 'Estética & Spa');
-    setFormRates(service?.rates?.map((rate) => ({ ...rate })) || []);
+    setPrice(service ? String(service.price) : '');
     setFormVisible(true);
   };
 
@@ -243,39 +159,42 @@ export default function ServicesScreen({ navigation, route }) {
     setEditingService(null);
   };
 
-  const saveForm = () => {
-    if (!formName.trim()) {
-      Alert.alert('Nome obrigatório', 'Informe o nome do serviço para continuar.');
+  async function saveForm() {
+    if (busy) return;
+    const amount = Number(price.trim().replace(',', '.'));
+    if (!formName.trim() || !price.trim() || !Number.isFinite(amount) || amount <= 0) {
+      setSavedMessage('Informe o nome e um preço válido.');
       return;
     }
-
-    const validRates = formRates
-      .filter((rate) => rate.label.trim() && rate.amount.trim())
-      .map((rate) => ({ ...rate, label: rate.label.trim(), amount: rate.amount.trim() }));
-
-    if (editingService) {
-      setServices((current) => current.map((service) => (
-        service.id === editingService.id
-          ? { ...service, name: formName.trim(), description: formDescription.trim(), rates: validRates }
-          : service
-      )));
-    } else {
-      setServices((current) => [...current, {
-        id: `local-${Date.now()}`,
-        name: formName.trim(),
-        category: formCategory,
-        description: formDescription.trim(),
-        rule: '',
-        icon: 'categories',
-        layout: 'rows',
-        rates: validRates,
-      }]);
-      setActiveCategory('Todos');
+    const payload = { name: formName.trim(), description: formDescription.trim(), price: amount };
+    setBusy(true);
+    try {
+      if (editingService) await api.put('/admin/services/' + editingService.id, payload);
+      else await api.post('/admin/services', payload);
+      await resource.reload();
+      setSavedMessage('Serviço salvo.');
+      closeForm();
+    } catch (error) {
+      setSavedMessage(error.message);
+    } finally {
+      setBusy(false);
     }
+  }
 
-    setSavedMessage('');
-    closeForm();
-  };
+  async function deleteService() {
+    if (busy || !editingService || !await showConfirm('Excluir serviço?', editingService.name)) return;
+    setBusy(true);
+    try {
+      await api.delete('/admin/services/' + editingService.id);
+      await resource.reload();
+      setSavedMessage('Serviço excluído.');
+      closeForm();
+    } catch (error) {
+      setSavedMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const openAdd = () => openEdit(null);
   const handleBack = () => {
@@ -324,19 +243,14 @@ export default function ServicesScreen({ navigation, route }) {
               <Icon name="medal" size={14} color={colors.brown} />
               <Text style={styles.heroPillText}>SERVIÇOS E PREÇOS</Text>
             </View>
-            <Text style={styles.managementYear}>Gestão{'\n'}2024</Text>
           </View>
-          <Text style={styles.heroTitle}>Nova Cobrança</Text>
+          <Text style={styles.heroTitle}>Serviços e preços</Text>
           <Text style={styles.heroDescription}>Tabela central de tarifas, planos e parâmetros de faturamento do resort.</Text>
           <View style={styles.heroDivider} />
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>ATIVOS</Text>
               <View style={styles.summaryValue}><Icon name="check" size={16} color="#2D5A43" /><Text style={styles.summaryNumber}>{services.length}</Text></View>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>CATEGORIAS</Text>
-              <View style={styles.summaryValue}><Icon name="categories" size={16} color={colors.brown} /><Text style={styles.summaryNumber}>4</Text></View>
             </View>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>TARIFAÇÃO</Text>
@@ -355,10 +269,10 @@ export default function ServicesScreen({ navigation, route }) {
         <View style={styles.searchBox}>
           <Icon name="search" size={18} color="#887E7B" />
           <TextInput
-            accessibilityLabel="Buscar serviço pelo nome ou categoria"
+            accessibilityLabel="Buscar serviço pelo nome"
             value={query}
             onChangeText={setQuery}
-            placeholder="Buscar serviço pelo nome ou categoria..."
+            placeholder="Buscar serviço pelo nome..."
             placeholderTextColor="#9B9290"
             style={styles.searchInput}
             returnKeyType="search"
@@ -366,46 +280,25 @@ export default function ServicesScreen({ navigation, route }) {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterList}>
-          {['Todos', ...CATEGORIES].map((category) => {
-            const selected = activeCategory === category;
-            const label = category === 'Todos' ? `Todos (${services.length})` : category;
-            return (
-              <Pressable
-                key={category}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                onPress={() => setActiveCategory(category)}
-                style={[styles.filterChip, selected && styles.filterChipSelected]}
-              >
-                <Text style={[styles.filterText, selected && styles.filterTextSelected]}>{label}</Text>
-              </Pressable>
-            );
-          })}
+          <Text style={styles.savedMessage}>{services.length} serviços</Text>
         </ScrollView>
 
         <View style={styles.servicesList}>
           {filteredServices.map((service) => (
             <ServiceCard key={service.id} service={service} onEdit={() => openEdit(service)} />
           ))}
-          {!filteredServices.length ? <Text style={styles.emptyState}>Nenhum serviço encontrado.</Text> : null}
+          {!resource.loading && !resource.error && !filteredServices.length ? <Text style={styles.emptyState}>Nenhum serviço encontrado.</Text> : null}
         </View>
 
         <View style={styles.noticeCard}>
           <View style={styles.noticeIcon}><Icon name="shield" size={23} color={colors.brown} /></View>
           <View style={styles.noticeCopy}>
             <Text style={styles.noticeTitle}>Preços de Referência Customizáveis</Text>
-            <Text style={styles.noticeText}>Os valores cadastrados acima funcionam como base de tabela. Na emissão de cobranças avulsas ou faturas de clientes, o administrador tem total liberdade para ajustar valores, aplicar descontos de cortesia ou adicionar serviços especiais.</Text>
+            <Text style={styles.noticeText}>O preço cadastrado é usado no cálculo de novas cobranças.</Text>
           </View>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setSavedMessage('Alterações mantidas localmente nesta sessão. A persistência real depende da integração com o módulo de Faturamento.')}
-          style={styles.saveButton}
-        >
-          <Icon name="save" size={17} color={colors.white} />
-          <Text style={styles.saveButtonText}>Salvar alterações</Text>
-        </Pressable>
+        <ResourceState resource={resource} />
         <View style={styles.syncRow}><Icon name="sync" size={11} color="#827876" /><Text style={styles.syncText}>Sincronizado com o módulo de Faturamento</Text></View>
         {savedMessage ? <Text accessibilityLiveRegion="polite" style={styles.savedMessage}>{savedMessage}</Text> : null}
       </ScrollView>
@@ -422,63 +315,20 @@ export default function ServicesScreen({ navigation, route }) {
               </View>
               <Text style={styles.fieldLabel}>Nome do serviço</Text>
               <TextInput value={formName} onChangeText={setFormName} placeholder="Nome" style={styles.formInput} maxLength={60} />
-              {!editingService?.id ? (
-                <>
-                  <Text style={styles.fieldLabel}>Categoria</Text>
-                  <View style={styles.formCategories}>
-                    {CATEGORIES.map((category) => (
-                      <Pressable key={category} onPress={() => setFormCategory(category)} style={[styles.formCategory, formCategory === category && styles.formCategorySelected]}>
-                        <Text style={[styles.formCategoryText, formCategory === category && styles.formCategoryTextSelected]}>{category}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </>
-              ) : null}
               <Text style={styles.fieldLabel}>Descrição</Text>
               <TextInput value={formDescription} onChangeText={setFormDescription} placeholder="Descrição do serviço" style={[styles.formInput, styles.descriptionInput]} multiline textAlignVertical="top" maxLength={220} />
               <Text style={styles.fieldLabel}>Valores e modalidades</Text>
-              <View style={styles.editRates}>
-                {formRates.map((rate, index) => (
-                  <View key={`${rate.label}-${index}`} style={styles.editRateRow}>
-                    <TextInput
-                      accessibilityLabel={`Modalidade ${index + 1}`}
-                      value={rate.label}
-                      onChangeText={(label) => setFormRates((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, label } : item))}
-                      placeholder="Modalidade"
-                      style={[styles.formInput, styles.rateLabelInput]}
-                      maxLength={42}
-                    />
-                    <TextInput
-                      accessibilityLabel={`Preço ${index + 1}`}
-                      value={rate.amount}
-                      onChangeText={(amount) => setFormRates((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, amount } : item))}
-                      placeholder="0,00"
-                      keyboardType="decimal-pad"
-                      style={[styles.formInput, styles.rateAmountInput]}
-                      maxLength={12}
-                    />
-                    <TextInput
-                      accessibilityLabel={`Unidade ${index + 1}`}
-                      value={rate.unit || ''}
-                      onChangeText={(unit) => setFormRates((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, unit } : item))}
-                      placeholder="/ dia"
-                      style={[styles.formInput, styles.rateUnitInput]}
-                      maxLength={10}
-                    />
-                    <Pressable accessibilityRole="button" accessibilityLabel={`Remover valor ${rate.label}`} onPress={() => setFormRates((current) => current.filter((_, itemIndex) => itemIndex !== index))} style={styles.removeRateButton}>
-                      <Icon name="close" size={16} color={colors.primary} />
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-              <Pressable accessibilityRole="button" onPress={() => setFormRates((current) => [...current, { label: '', amount: '', unit: '' }])} style={styles.addRateButton}>
-                <Icon name="plus" size={15} color={colors.primary} />
-                <Text style={styles.addRateText}>Adicionar modalidade/preço</Text>
+                <TextInput accessibilityLabel="Preço em reais" value={price} onChangeText={setPrice}
+                  keyboardType="decimal-pad" style={styles.formInput} placeholder="Preço em reais" />
+                {savedMessage ? <Text accessibilityRole="alert">{savedMessage}</Text> : null}
+                {editingService && (
+                  <Pressable accessibilityRole="button" disabled={busy} onPress={deleteService}>
+                    <Text>Excluir serviço</Text>
+                  </Pressable>
+                )}
+              <Pressable accessibilityRole="button" disabled={busy} onPress={saveForm} style={styles.modalSaveButton}>
+                <Text style={styles.modalSaveText}>{editingService?.id ? 'Salvar edição' : 'Adicionar serviço'}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={saveForm} style={styles.modalSaveButton}>
-                <Text style={styles.modalSaveText}>{editingService?.id ? 'Salvar edição local' : 'Adicionar localmente'}</Text>
-              </Pressable>
-              <Text style={styles.modalDisclaimer}>As alterações ficam nesta sessão e não são enviadas a um servidor.</Text>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
