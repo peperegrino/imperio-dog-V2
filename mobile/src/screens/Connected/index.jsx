@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
+import { styles as chargeStyles } from "../Charges/managementStyles";
 import { api } from "../../services/api";
 import {
   Page,
@@ -281,6 +282,8 @@ export function Services({ navigation }) {
     </Page>
   );
 }
+const chargePresentation = { ...chargeStyles, content: [chargeStyles.content, { paddingTop: 20 }] };
+
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -305,7 +308,11 @@ export function Management({ navigation }) {
     0,
   );
   return (
-    <Page title="Nova cobrança" navigation={navigation}>
+    <Page title="Nova cobrança" navigation={navigation} presentation={chargePresentation}>
+      <View style={chargeStyles.intro}>
+        <Text style={chargeStyles.pageTitle}>Nova cobrança</Text>
+        <Text style={chargeStyles.pageSubtitle}>Selecione o tutor, o pet e os serviços.</Text>
+      </View>
       {[customers, pets, services].map((r, i) => (
         <ResourceState key={i} resource={r} />
       ))}

@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { Platform, Text } from "react-native";
+import { Platform } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import PagamentoScreen from "../Pagamento/PagamentoScreen";
+import { useAuth } from "../../contexts/AuthContext";
+import { showAlert } from "../../utils/alert";
 import { api } from "../../services/api";
 import {
   Page,
-  Card,
   Action,
   Message,
   ResourceState,
@@ -14,10 +16,11 @@ import {
   money,
   date,
   statusLabel,
-  s,
 } from "../../components/ConnectedUI";
 
 export default function Payment({ navigation, route }) {
+  const { session } = useAuth();
+  const homeRoute = session.role === "ADMIN" ? "Admin" : "Home";
   const id = route.params?.chargeId;
   const resource = useResource(`/charges/${id}`);
   const [message, setMessage] = useState(""),
@@ -53,55 +56,48 @@ export default function Payment({ navigation, route }) {
       setBusy(false);
     }
   }
+  if (!c) {
+    return (
+      <Page title="Detalhes da cobrança" navigation={navigation}>
+        <ResourceState resource={resource} />
+        <Action title="Voltar às cobranças" onPress={() => navigation.navigate("Charges")} />
+        <Message>{message}</Message>
+      </Page>
+    );
+  }
+
   return (
-    <Page title="Detalhes da cobrança" navigation={navigation}>
-      <ResourceState resource={resource} />
-      {c && (
-        <Card>
-          <Text style={s.title}>
-            #{c.id} · {statusLabel[c.status]}
-          </Text>
-          <Text style={s.title}>{money(c.amount)}</Text>
-          <Text>Serviço: {c.serviceName}</Text>
-          <Text>Tutor: {c.customerName}</Text>
-          <Text>Pet: {c.petName}</Text>
-          <Text>Serviço realizado: {date(c.serviceDate)}</Text>
-          <Text>Vencimento: {date(c.dueDate)}</Text>
-          {c.paymentDate && <Text>Pagamento: {date(c.paymentDate)}</Text>}
-          {!c.ticketUrl && (
-            <Message>
-              Boleto indisponível. A emissão pode precisar de conciliação pela
-              equipe.
-            </Message>
-          )}
-          {c.digitableLine && (
-            <>
-              <Text selectable>{c.digitableLine}</Text>
-              <Action
-                title="Copiar linha digitável"
-                onPress={async () => {
-                  try {
-                    await Clipboard.setStringAsync(
-                      c.digitableLine.replace(/\D/g, ""),
-                    );
-                    setMessage("Linha digitável copiada.");
-                  } catch (e) {
-                    setMessage(e.message);
-                  }
-                }}
-              />
-            </>
-          )}
-          {c.barcode && <Text selectable>Código: {c.barcode}</Text>}
-          <Action
-            title={busy ? "Baixando…" : "Baixar boleto PDF"}
-            onPress={pdf}
-            disabled={busy || !c.ticketUrl}
-          />
-          <Action title="Atualizar status" onPress={resource.reload} />
-          <Message>{message}</Message>
-        </Card>
-      )}
-    </Page>
+    <PagamentoScreen
+      data={{
+        ...c,
+        status: statusLabel[c.status] || c.status,
+        dueLabel: "Vencimento: " + date(c.dueDate),
+        amount: money(c.amount),
+        details: [
+          ["Serviço:", c.serviceName],
+          ["Tutor:", c.customerName],
+          ["Pet:", c.petName],
+          ["Data do serviço:", date(c.serviceDate)],
+          ["Vencimento:", date(c.dueDate)],
+          ...(c.paymentDate ? [["Pagamento:", date(c.paymentDate)]] : []),
+        ],
+      }}
+      homeRoute={homeRoute}
+      downloadBusy={busy}
+      message={message}
+      onCopy={async (value) => {
+        try {
+          await Clipboard.setStringAsync(value.replace(/\D/g, ""));
+          showAlert("Código copiado", "");
+        } catch (error) {
+          showAlert("Não foi possível copiar", error.message);
+        }
+      }}
+      onBack={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Charges")}
+      onProfilePress={() => navigation.navigate("Profile")}
+      onNavigate={(routeName) => navigation.navigate(routeName)}
+      onViewFullBoleto={pdf}
+      onBackToDetails={() => resource.reload()}
+    />
   );
 }

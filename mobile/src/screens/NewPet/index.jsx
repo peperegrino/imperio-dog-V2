@@ -11,6 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
+import { Choose, ResourceState, useResource } from '../../components/ConnectedUI';
 import { colors } from '../../theme/colors';
 import { styles } from './styles';
 
@@ -21,7 +24,6 @@ const initialValues = {
   sex: '',
   birthDate: '',
   weight: '',
-  tutor: '',
   notes: '',
 };
 
@@ -30,7 +32,6 @@ const fields = [
   { key: 'breed', label: 'Raça', placeholder: 'Informe a raça' },
   { key: 'birthDate', label: 'Data de nascimento', placeholder: 'DD/MM/AAAA', keyboardType: 'numeric' },
   { key: 'weight', label: 'Peso (kg)', placeholder: 'Ex.: 8,5', keyboardType: 'decimal-pad' },
-  { key: 'tutor', label: 'Tutor responsável', placeholder: 'Nome do tutor' },
 ];
 
 function isValidBirthDate(value) {
@@ -65,7 +66,6 @@ function validate(values) {
   if (!values.weight.trim()) errors.weight = 'Informe o peso em quilogramas.';
   else if (!Number.isFinite(weight) || weight <= 0) errors.weight = 'Informe um peso maior que zero.';
 
-  if (!values.tutor.trim()) errors.tutor = 'Informe o tutor responsável.';
   return errors;
 }
 
@@ -127,6 +127,11 @@ function ChoiceField({ label, options, value, onChange, error }) {
 }
 
 export default function NewPetScreen({ navigation }) {
+  const { session } = useAuth();
+  const admin = session.role === 'ADMIN';
+  const customers = useResource(admin ? '/admin/customers' : '/account/me');
+  const [customerId, setCustomerId] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
@@ -139,9 +144,10 @@ export default function NewPetScreen({ navigation }) {
     if (attemptedSubmit) setErrors(validate(nextValues));
   };
 
-  const cancel = () => navigation.goBack();
+  const cancel = () => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Pets');
 
-  const submit = () => {
+  const submit = async () => {
+    if (saving) return;
     const nextErrors = validate(values);
     setErrors(nextErrors);
     setAttemptedSubmit(true);
@@ -151,9 +157,24 @@ export default function NewPetScreen({ navigation }) {
       return;
     }
 
-    setSubmissionMessage(
-      'Os dados foram validados neste dispositivo, mas não foram cadastrados. O aplicativo ainda não possui uma API de pets para salvar o registro.',
-    );
+    if (admin && !customerId) {
+      setSubmissionMessage('Selecione o tutor responsável.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post(admin ? '/admin/pets' : '/account/pets', {
+        ...values,
+        customerId,
+        birthDate: values.birthDate.trim().split('/').reverse().join('-'),
+        weight: Number(values.weight.replace(',', '.')),
+      });
+      navigation.replace('Pets');
+    } catch (error) {
+      setSubmissionMessage(error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -243,15 +264,13 @@ export default function NewPetScreen({ navigation }) {
               </View>
             </View>
 
-            <FormField
-              field={fields[4]}
-              onChangeText={(value) => updateField('tutor', value)}
-              value={values.tutor}
-              error={errors.tutor}
-            />
-            <Text style={styles.fieldHint}>
-              A lista de clientes não está disponível no app; informe o tutor manualmente.
-            </Text>
+            {admin && (
+              <>
+                <ResourceState resource={customers} />
+                <Choose label="Tutor responsável" items={customers.data || []}
+                  value={customerId} onChange={setCustomerId} />
+              </>
+            )}
             <FormField
               field={{ key: 'notes', label: 'Observações', placeholder: 'Alergias, cuidados ou informações importantes (opcional)' }}
               multiline
@@ -261,19 +280,14 @@ export default function NewPetScreen({ navigation }) {
             />
           </View>
 
-          <View style={styles.apiNotice}>
-            <Text style={styles.apiNoticeTitle}>Sobre o cadastro</Text>
-            <Text style={styles.apiNoticeText}>
-              O app ainda não tem integração com endpoint para criar ou listar pets nem com uma fonte de clientes. Os dados não serão enviados ou salvos até essas integrações existirem.
-            </Text>
-          </View>
 
           <Pressable
             accessibilityRole="button"
+            disabled={saving}
             onPress={submit}
             style={({ pressed }) => [styles.submitButton, pressed && styles.pressed]}
           >
-            <Text style={styles.submitButtonText}>Cadastrar Pet</Text>
+            <Text style={styles.submitButtonText}>{saving ? 'Salvando…' : 'Cadastrar Pet'}</Text>
           </Pressable>
           {submissionMessage ? (
             <Text accessibilityLiveRegion="polite" style={styles.submissionMessage}>

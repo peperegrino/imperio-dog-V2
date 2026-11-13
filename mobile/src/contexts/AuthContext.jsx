@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { api, ROLE_STORAGE_KEY, TOKEN_STORAGE_KEY } from '../services/api';
+import { api, setSessionToken, ROLE_STORAGE_KEY, TOKEN_STORAGE_KEY } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -47,6 +47,7 @@ export function AuthProvider({ children }) {
 
         if (token && ['ADMIN', 'USER', 'TUTOR', 'CLIENT', 'CUSTOMER'].includes(role)) {
           if (active) {
+            setSessionToken(token);
             setSession({ token, role });
           }
         } else if (token || role) {
@@ -69,26 +70,29 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const signIn = useCallback(async (email, password) => {
+  const signIn = useCallback(async (email, password, remember = true) => {
     const response = await api.post('/auth/login', { email, password });
     const nextSession = getLoginDetails(response);
 
     try {
-      await AsyncStorage.multiSet([
+      if (remember) await AsyncStorage.multiSet([
         [TOKEN_STORAGE_KEY, nextSession.token],
         [ROLE_STORAGE_KEY, nextSession.role],
       ]);
+      else await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
     } catch (error) {
       await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
       throw error;
     }
 
+    setSessionToken(nextSession.token);
     setSession(nextSession);
     return nextSession;
   }, []);
 
   const signOut = useCallback(async () => {
     await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
+    setSessionToken(null);
     setSession(null);
   }, []);
 

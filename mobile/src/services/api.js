@@ -3,6 +3,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const TOKEN_STORAGE_KEY = "@imperio-dog/token";
 export const ROLE_STORAGE_KEY = "@imperio-dog/role";
 let unauthorizedHandler;
+let sessionToken;
+
+export function setSessionToken(token) {
+  sessionToken = token;
+}
 
 export class ApiError extends Error {
   constructor(message, status, data) {
@@ -25,7 +30,7 @@ async function request(path, options = {}) {
     );
   }
 
-  const token = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
+  const token = sessionToken;
   const headers = {
     Accept: "application/json",
     ...(options.body ? { "Content-Type": "application/json" } : {}),
@@ -51,10 +56,11 @@ async function request(path, options = {}) {
     }
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 && token && token === sessionToken) {
     if (unauthorizedHandler) {
       await unauthorizedHandler();
     } else {
+      setSessionToken(null);
       await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
     }
   }
