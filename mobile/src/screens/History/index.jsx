@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
-import { charges } from '../../data/charges';
+import { useAuth } from '../../contexts/AuthContext';
+import { date, money, statusLabel, ResourceState, useResource } from '../../components/ConnectedUI';
 import { colors } from '../../theme/colors';
 import { styles } from './styles';
 
@@ -22,25 +23,20 @@ const statusDetails = {
   cancelled: { label: 'Cancelado', tone: 'cancelled' },
 };
 
-function getChargeDate(description) {
-  const date = description.match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
-  return date || 'Data não informada';
-}
-
-function ChargeHistoryCard({ charge }) {
+function ChargeHistoryCard({ charge, openCharge }) {
   const status = statusDetails[charge.status] || {
-    label: charge.statusLabel || 'Status não informado',
+    label: statusLabel[charge.originalStatus] || 'Status não informado',
     tone: 'neutral',
   };
 
   return (
-    <View style={styles.chargeCard}>
+    <Pressable accessibilityRole="button" onPress={openCharge} style={styles.chargeCard}>
       <View style={styles.cardTop}>
         <View style={styles.receiptIcon}>
           <Text style={styles.receiptMark}>R$</Text>
         </View>
         <View style={styles.cardHeading}>
-          <Text style={styles.chargeTitle}>{charge.title}</Text>
+          <Text style={styles.chargeTitle}>{charge.serviceName}</Text>
           <Text style={styles.chargeId}>Cobrança #{charge.id}</Text>
         </View>
         <View style={[styles.statusPill, styles[`statusPill_${status.tone}`]]}>
@@ -53,33 +49,38 @@ function ChargeHistoryCard({ charge }) {
       <View style={styles.cardDivider} />
       <View style={styles.detailRow}>
         <Text style={styles.detailLabel}>Pet</Text>
-        <Text style={styles.detailValue}>Não informado</Text>
+        <Text style={styles.detailValue}>{charge.petName || 'Não informado'}</Text>
       </View>
       <View style={styles.detailRow}>
         <Text style={styles.detailLabel}>Serviço</Text>
-        <Text numberOfLines={2} style={styles.detailValue}>{charge.title}</Text>
+        <Text numberOfLines={2} style={styles.detailValue}>{charge.serviceName}</Text>
       </View>
       <View style={styles.cardFooter}>
         <View>
           <Text style={styles.detailLabel}>
             {charge.status === 'paid' ? 'Data do pagamento' : 'Data da cobrança'}
           </Text>
-          <Text style={styles.dateValue}>{getChargeDate(charge.description)}</Text>
+          <Text style={styles.dateValue}>{date(charge.status === 'paid' ? charge.paymentDate : charge.dueDate)}</Text>
         </View>
-        <Text style={styles.amount}>{charge.amount}</Text>
+        <Text style={styles.amount}>{money(charge.amount)}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-export default function HistoryScreen({ navigation, route }) {
-  const homeRoute = route.params?.homeRoute || 'Home';
+export default function HistoryScreen({ navigation }) {
+  const { session } = useAuth();
+  const admin = session.role === 'ADMIN';
+  const homeRoute = admin ? 'Admin' : 'Home';
+  const resource = useResource(admin ? '/admin/charges' : '/charges/my-charges');
   const [activeFilter, setActiveFilter] = useState('all');
-  const visibleCharges = useMemo(
-    () => (activeFilter === 'all'
-      ? charges
-      : charges.filter((charge) => charge.status === activeFilter)),
-    [activeFilter],
+  const charges = (resource.data || []).map((charge) => ({
+    ...charge,
+    status: charge.status === 'CANCELED' ? 'cancelled' : charge.status?.toLowerCase(),
+    originalStatus: charge.status,
+  }));
+  const visibleCharges = charges.filter((charge) =>
+    activeFilter === 'all' || charge.status === activeFilter
   );
   const paidCount = charges.filter((charge) => charge.status === 'paid').length;
   const pendingCount = charges.filter((charge) => charge.status === 'pending').length;
@@ -142,12 +143,7 @@ export default function HistoryScreen({ navigation, route }) {
           </View>
         </View>
 
-        <View style={styles.notice}>
-          <Text style={styles.noticeTitle}>Dados demonstrativos</Text>
-          <Text style={styles.noticeText}>
-            O aplicativo ainda não está conectado a uma API de cobranças. Estes são os registros locais já exibidos na tela inicial.
-          </Text>
-        </View>
+        <ResourceState resource={resource} />
 
         <ScrollView
           contentContainerStyle={styles.filterList}
@@ -174,7 +170,7 @@ export default function HistoryScreen({ navigation, route }) {
 
         {visibleCharges.length ? (
           visibleCharges.map((charge) => (
-            <ChargeHistoryCard charge={charge} key={charge.id} />
+            <ChargeHistoryCard charge={charge} key={charge.id} openCharge={() => navigation.navigate("Pagamento", { chargeId: charge.id })} />
           ))
         ) : (
           <View style={styles.emptyState}>

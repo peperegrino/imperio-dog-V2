@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StatusBar,
-  Switch,
   Text,
   TextInput,
   View,
@@ -12,17 +10,14 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
+import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
+import { ResourceState, useResource } from '../../components/ConnectedUI';
+import { showAlert, showConfirm } from '../../utils/alert';
 import { colors } from '../../theme/colors';
 
 import { styles } from './styles';
 
-const initialProfile = {
-  name: 'Mariana Oliveira',
-  email: 'mariana.oliveira@email.com',
-  phone: '(11) 99999-4321',
-  cpf: '***.492.188-**',
-  address: 'Jardins, São Paulo - SP',
-};
 
 const profileAvatarSvg = `<svg width="106" height="107" viewBox="0 0 106 107" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs><linearGradient id="profileAvatarGradient" x1="5" y1="2" x2="101" y2="98" gradientUnits="userSpaceOnUse"><stop stop-color="#722F37"/><stop offset="1" stop-color="#4A1F25"/></linearGradient></defs>
@@ -144,14 +139,35 @@ function PreferenceRow({ icon, title, subtitle, onPress, last = false, children 
   );
 }
 
-export default function ProfileScreen({ navigation, route }) {
-  const homeRoute = route.params?.homeRoute || 'Home';
+export default function ProfileScreen({ navigation }) {
+  const { session, signOut } = useAuth();
+  const homeRoute = session.role === 'ADMIN' ? 'Admin' : 'Home';
   const insets = useSafeAreaInsets();
-  const [profile, setProfile] = useState(initialProfile);
-  const [editing, setEditing] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const account = useResource('/account/me');
+  const pets = useResource('/account/pets');
+  const [draft, setDraft] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const editing = draft !== null;
+  const profile = { ...account.data, ...draft };
 
-  const showUnavailable = (feature) => Alert.alert(feature, 'Essa opção ainda não está disponível no aplicativo.');
+  async function editProfile() {
+    if (!editing) {
+      setDraft({ name: profile.name || '', phone: profile.phone || '' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.put('/account/me', draft);
+      await account.reload();
+      setDraft(null);
+    } catch (error) {
+      showAlert('Erro ao salvar', error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const showUnavailable = (feature) => showAlert(feature, 'Essa opção ainda não está disponível no aplicativo.');
   const navigateToPets = () => navigation.navigate('Pets', { homeRoute });
   const navigateHome = () => navigation.navigate(homeRoute, { homeRoute });
   const navigateBack = () => {
@@ -159,10 +175,11 @@ export default function ProfileScreen({ navigation, route }) {
     else navigateHome();
   };
 
-  const handleLogout = () => Alert.alert('Sair da conta?', 'Você poderá entrar novamente pela tela de acesso.', [
-    { text: 'Cancelar', style: 'cancel' },
-    { text: 'Sair', style: 'destructive', onPress: () => navigation.navigate('Login') },
-  ]);
+  const handleLogout = async () => {
+    if (await showConfirm('Sair da conta?', 'Você poderá entrar novamente pela tela de acesso.')) {
+      await signOut();
+    }
+  };
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
@@ -190,12 +207,9 @@ export default function ProfileScreen({ navigation, route }) {
           <Text style={styles.pageDescription}>Gerencie suas informações e preferências.</Text>
         </View>
 
+        <ResourceState resource={account} />
         <View style={styles.identityCard}>
           <View style={styles.identityCardTop}>
-            <View style={styles.vipBadge}>
-              <ProfileIcon name="vipAward" size={11} color="#B58C63" />
-              <Text style={styles.vipText}>VIP</Text>
-            </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Alterar foto de perfil" onPress={() => showUnavailable('Foto de perfil')} style={styles.smallEditButton}>
               <ProfileIcon name="edit" size={13} />
             </Pressable>
@@ -203,7 +217,6 @@ export default function ProfileScreen({ navigation, route }) {
           <View style={styles.identityCenter}>
             <ProfileAvatar />
             <Text style={styles.identityName}>{profile.name}</Text>
-            <Text style={styles.memberSince}><Text style={styles.memberBullet}>• </Text>Membro VIP desde Março/2026</Text>
           </View>
           <View style={styles.identityDivider} />
           <View style={styles.contactPill}>
@@ -218,8 +231,11 @@ export default function ProfileScreen({ navigation, route }) {
 
         <View style={styles.section}>
           <SectionTitle icon="paw" headingStyle={styles.petsHeading}>MEUS PETS</SectionTitle>
-          <PetCard name="Thor" breed="Golden Retriever" size="Grande (32kg)" icon="dog" onPress={navigateToPets} />
-          <PetCard name="Maya" breed="Cavalier King Charles" size="Pequeno (8kg)" icon="rabbit" onPress={navigateToPets} />
+          <ResourceState resource={pets} />
+          {pets.data?.map((pet) => (
+            <PetCard key={pet.id} name={pet.name} breed={pet.breed}
+              size={pet.weight == null ? '' : `${pet.weight} kg`} icon="dog" onPress={navigateToPets} />
+          ))}
           <Pressable accessibilityRole="button" onPress={navigateToPets} style={({ pressed }) => [styles.addPetButton, pressed && styles.pressed]}>
             <ProfileIcon name="plus" size={14} />
             <Text style={styles.addPetText}>Adicionar novo pet</Text>
@@ -232,13 +248,12 @@ export default function ProfileScreen({ navigation, route }) {
             trailing={<View style={styles.protectedLabel}><ProfileIcon name="lock" size={11} color="#2D5A43" /><Text style={styles.protectedText}>Protegido</Text></View>}
           >DADOS PESSOAIS &amp; CADASTRO</SectionTitle>
           <View style={styles.detailsCard}>
-            <ProfileField label="NOME COMPLETO" value={profile.name} icon="user" editing={editing} onChangeText={(value) => setProfile({ ...profile, name: value })} />
-            <ProfileField label="E-MAIL DE CONTATO" value={profile.email} icon="email" editing={editing} onChangeText={(value) => setProfile({ ...profile, email: value })} />
-            <ProfileField label="TELEFONE / WHATSAPP" value={profile.phone} icon="phone" editing={editing} onChangeText={(value) => setProfile({ ...profile, phone: value })} />
-            <ProfileField label="CPF" value={profile.cpf} icon="shield" editing={editing} onChangeText={(value) => setProfile({ ...profile, cpf: value })} />
-            <ProfileField label="ENDEREÇO RESIDENCIAL" value={profile.address} icon="home" editing={editing} onChangeText={(value) => setProfile({ ...profile, address: value })} last />
+            <ProfileField label="NOME COMPLETO" value={profile.name} icon="user" editing={editing} onChangeText={(value) => setDraft({ ...draft, name: value })} />
+            <ProfileField label="E-MAIL DE CONTATO" value={profile.email} icon="email" />
+            <ProfileField label="TELEFONE / WHATSAPP" value={profile.phone} icon="phone" editing={editing} onChangeText={(value) => setDraft({ ...draft, phone: value })} last />
+            <ProfileField label="CPF" value={profile.cpf} icon="shield" />
           </View>
-          <Pressable accessibilityRole="button" onPress={() => setEditing(!editing)} style={({ pressed }) => [styles.editDataButton, pressed && styles.pressed]}>
+          <Pressable accessibilityRole="button" disabled={saving || !account.data} onPress={editProfile} style={({ pressed }) => [styles.editDataButton, pressed && styles.pressed]}>
             <ProfileIcon name={editing ? 'check' : 'edit'} size={15} />
             <Text style={styles.editDataText}>{editing ? 'Salvar dados' : 'Editar dados'}</Text>
           </Pressable>
@@ -253,21 +268,7 @@ export default function ProfileScreen({ navigation, route }) {
           <SectionTitle icon="settings">CONFIGURAÇÕES &amp; PREFERÊNCIAS</SectionTitle>
           <View style={styles.preferencesCard}>
             <PreferenceRow icon="receipt" title="Dados para emissão de Boletos" subtitle="Boleto bancário registrado CIP (Único método)" onPress={() => showUnavailable('Dados para emissão de boletos')} />
-            <PreferenceRow icon="clock" title="Segurança e senha" subtitle="Autenticação biométrica ativa" onPress={() => showUnavailable('Segurança e senha')} />
-            <PreferenceRow
-              icon="bell"
-              title="Notificações e lembretes"
-              subtitle="Alertas de hospedagem e cobrança"
-              onPress={() => setNotificationsEnabled(!notificationsEnabled)}
-            >
-              <Switch
-                accessibilityLabel="Notificações e lembretes"
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: '#D8CFCA', true: colors.primary }}
-                thumbColor={colors.white}
-                value={notificationsEnabled}
-              />
-            </PreferenceRow>
+            <PreferenceRow icon="clock" title="Segurança e senha" onPress={() => showUnavailable('Segurança e senha')} />
             <PreferenceRow icon="document" title="Termos de uso e privacidade" onPress={() => showUnavailable('Termos de uso e privacidade')} last />
           </View>
         </View>

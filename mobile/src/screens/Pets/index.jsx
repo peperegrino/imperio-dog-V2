@@ -2,11 +2,16 @@ import { Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
+import { useAuth } from '../../contexts/AuthContext';
+import { Card, Message, ResourceState, date, useResource } from '../../components/ConnectedUI';
 import { colors } from '../../theme/colors';
 import { styles } from './styles';
 
-export default function PetsScreen({ navigation, route }) {
-  const homeRoute = route.params?.homeRoute || 'Admin';
+export default function PetsScreen({ navigation }) {
+  const { session } = useAuth();
+  const admin = session.role === 'ADMIN';
+  const homeRoute = admin ? 'Admin' : 'Home';
+  const resource = useResource(admin ? '/admin/pets' : '/account/pets');
 
   const goBack = () => {
     if (navigation.canGoBack()) {
@@ -49,14 +54,23 @@ export default function PetsScreen({ navigation, route }) {
           </Text>
         </View>
 
+        <ResourceState resource={resource} />
+        {resource.data?.map((pet) => (
+          <Card key={pet.id}>
+            <Text style={styles.emptyTitle}>{pet.name}</Text>
+            <Text>{[pet.species, pet.breed, pet.sex].filter(Boolean).join(' · ')}</Text>
+            {pet.weight != null && <Text>{pet.weight} kg</Text>}
+            <Text>Nascimento: {date(pet.birthDate)}</Text>
+            {pet.notes && <Text>{pet.notes}</Text>}
+          </Card>
+        ))}
         <View style={styles.emptyCard}>
           <View style={styles.pawBadge}>
             <Text style={styles.paw}>✦</Text>
           </View>
-          <Text style={styles.emptyTitle}>Lista de pets indisponível</Text>
-          <Text style={styles.emptyDescription}>
-            Ainda não existe uma integração com a API para carregar pets cadastrados. Você pode preencher os dados de um novo pet; o envio será habilitado quando o backend disponibilizar o endpoint.
-          </Text>
+          {!resource.loading && !resource.error && !resource.data?.length && (
+            <Message>Nenhum pet cadastrado.</Message>
+          )}
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.navigate('NewPet', { homeRoute })}
