@@ -19,7 +19,6 @@ import {
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { BlurTargetView, BlurView } from 'expo-blur';
-import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useFonts,
@@ -31,7 +30,6 @@ import {
 import { colors, fonts, shadows } from './theme';
 import {
   backArrowXml,
-  barcodeXml,
   copySmallXml,
   copyWhiteXml,
   eyeXml,
@@ -46,25 +44,6 @@ import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
 /* ------------------------------------------------------------------ */
 const HEADER_HEIGHT = 64;
 
-const DATA = {
-  status: 'PENDENTE',
-  dueLabel: 'Vence em 30/09/2026',
-  amount: 'R$ 289,90',
-  details: [
-    ['Serviço:', 'Hospedagem mensal'],
-    ['Tutor:', 'Mariana Oliveira'],
-    ['Pet:', 'Thor'],
-    ['Período:', 'Setembro de 2026'],
-    ['Data de emissão:', '01/09/2026'],
-    ['Vencimento:', '30/09/2026'],
-  ],
-  // linha digitável exibida no card "Linha digitável" (quebra igual ao Figma)
-  digitableLine1: '34191.79001 01043.510047 91020.150008 8 94',
-  digitableLine2: '570000028990',
-  // texto exibido sob o código de barras (quebra igual ao Figma)
-  barcodeLine1: '34191.79001 01043.510047 91020.150008 1 9823',
-  barcodeLine2: '0000028990',
-};
 
 /* ------------------------------------------------------------------ */
 /* Ícone: moldura com o tamanho do Figma + SVG no tamanho nativo       */
@@ -82,6 +61,10 @@ const Icon = ({ xml, frameW, frameH, svgW, svgH }) => (
 /* Tela                                                                */
 /* ------------------------------------------------------------------ */
 export default function PagamentoScreen({
+  data,
+  onCopy,
+  downloadBusy,
+  message,
   onBack,
   onProfilePress,
   onNavigate,
@@ -99,7 +82,7 @@ export default function PagamentoScreen({
 
   if (!fontsLoaded) return null;
 
-  const copy = (value) => Clipboard.setStringAsync(value.replace(/\D/g, ''));
+  const copy = onCopy;
 
   return (
     <View style={styles.root}>
@@ -123,9 +106,9 @@ export default function PagamentoScreen({
               {/* Badge + vencimento */}
               <View style={styles.statusRow}>
                 <View style={[styles.badge, shadows.small]}>
-                  <Text style={styles.badgeText}>{DATA.status}</Text>
+                  <Text style={styles.badgeText}>{data.status}</Text>
                 </View>
-                <Text style={styles.dueText}>{DATA.dueLabel}</Text>
+                <Text style={styles.dueText}>{data.dueLabel}</Text>
               </View>
 
               {/* Valor */}
@@ -134,14 +117,14 @@ export default function PagamentoScreen({
                   <Text style={styles.valueLabel}>VALOR DA COBRANÇA</Text>
                 </View>
                 <View style={styles.valueWrap}>
-                  <Text style={styles.valueText}>{DATA.amount}</Text>
+                  <Text style={styles.valueText}>{data.amount}</Text>
                 </View>
               </View>
 
               {/* Detalhes */}
               <View style={styles.detailsMargin}>
                 <View style={styles.detailsBorder}>
-                  {DATA.details.map(([label, value]) => (
+                  {data.details.map(([label, value]) => (
                     <View key={label} style={styles.detailRow}>
                       <Text style={styles.detailLabel}>{label}</Text>
                       <Text style={styles.detailValue}>{value}</Text>
@@ -153,6 +136,7 @@ export default function PagamentoScreen({
 
             {/* ---------- Pagamento via boleto (altura fixa 483 como no Figma) ---------- */}
             <View style={styles.boletoSection}>
+              {message ? <Text accessibilityRole="alert">{message}</Text> : null}
               <View style={styles.boletoHeading}>
                 <Icon xml={receiptXml} frameW={16.5} frameH={18.333} svgW={17} svgH={19} />
                 <Text style={styles.boletoHeadingText}>Pagamento via boleto</Text>
@@ -166,14 +150,15 @@ export default function PagamentoScreen({
 
                 <View style={[styles.codeBox, shadows.card]}>
                   <Text style={styles.codeText}>
-                    {`${DATA.digitableLine1}\n${DATA.digitableLine2}`}
+                    {`${data.digitableLine || "Indisponível"}`}
                   </Text>
                 </View>
 
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Copiar código"
-                  onPress={() => copy(DATA.digitableLine1 + DATA.digitableLine2)}
+                  disabled={!data.digitableLine}
+                  onPress={() => copy(data.digitableLine)}
                   style={({ pressed }) => [
                     styles.primaryButton,
                     shadows.button,
@@ -189,6 +174,7 @@ export default function PagamentoScreen({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Visualizar boleto completo"
+                disabled={downloadBusy || !data.ticketUrl}
                 onPress={onViewFullBoleto}
                 style={({ pressed }) => [
                   styles.secondaryButton,
@@ -197,19 +183,18 @@ export default function PagamentoScreen({
                 ]}
               >
                 <Icon xml={eyeXml} frameW={18.333} frameH={12.5} svgW={19} svgH={13} />
-                <Text style={styles.secondaryButtonText}>Visualizar boleto completo</Text>
+                <Text style={styles.secondaryButtonText}>{downloadBusy ? 'Baixando…' : 'Baixar boleto PDF'}</Text>
               </Pressable>
 
               {/* Código de barras */}
               <View style={[styles.barcodeCard, shadows.small]}>
                 <Text style={styles.barcodeTitle}>CÓDIGO DE BARRAS</Text>
 
-                <SvgXml xml={barcodeXml} width={260} height={32} />
 
                 <View style={styles.barcodeCodeMargin}>
                   <View style={styles.barcodeCodeBox}>
                     <Text style={styles.barcodeCodeText}>
-                      {`${DATA.barcodeLine1}\n${DATA.barcodeLine2}`}
+                      {`${data.barcode || "Indisponível"}`}
                     </Text>
                   </View>
                 </View>
@@ -218,7 +203,8 @@ export default function PagamentoScreen({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Copiar código de barras"
-                    onPress={() => copy(DATA.barcodeLine1 + DATA.barcodeLine2)}
+                    disabled={!data.barcode}
+                    onPress={() => copy(data.barcode)}
                     style={({ pressed }) => [styles.smallCopyButton, pressed && styles.pressed]}
                   >
                     <Icon xml={copySmallXml} frameW={10.625} frameH={12.5} svgW={11} svgH={13} />

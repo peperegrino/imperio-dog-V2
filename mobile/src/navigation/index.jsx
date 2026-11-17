@@ -7,17 +7,20 @@ import { useEffect } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 
 import FontLoading from "../components/FontLoading";
+import AdminScreen from "../screens/Admin";
+import HomeScreen from "../screens/Home";
+import HistoryScreen from "../screens/History";
+import PetsScreen from "../screens/Pets";
+import ProfileScreen from "../screens/Profile";
+import NewPetScreen from "../screens/NewPet";
+import SignupScreen from "../screens/Signup";
+import CustomersScreen from "../screens/Customers";
+import ServicesScreen from "../screens/Services";
 import LoginScreen from "../screens/Login";
 import { useAuth } from "../contexts/AuthContext";
 import {
-  Dashboard,
-  CustomerForm,
-  Pets,
-  NewPet,
-  Services,
   Management,
   ChargeList,
-  Profile,
 } from "../screens/Connected";
 import Payment from "../screens/Connected/Payment";
 import { setUnauthorizedHandler } from "../services/api";
@@ -45,12 +48,6 @@ const linking = {
   },
 };
 
-function SignupRoute(props) {
-  return <CustomerForm {...props} signup />;
-}
-function HistoryRoute(props) {
-  return <ChargeList {...props} history />;
-}
 export default function Navigation() {
   const { session, isLoading, initializationError, signOut } = useAuth();
 
@@ -94,7 +91,7 @@ export default function Navigation() {
 
   return (
     <View style={styles.viewport}>
-      <View style={styles.appContent}>
+      <View style={[styles.appContent, !session && styles.authContent]}>
         <NavigationContainer
           ref={navigationRef}
           linking={linking}
@@ -109,28 +106,28 @@ export default function Navigation() {
             {!session ? (
               <>
                 <Stack.Screen name="Login" component={LoginScreen} />
-                <Stack.Screen name="Signup" component={SignupRoute} />
+                <Stack.Screen name="Signup" component={SignupScreen} />
               </>
             ) : (
               <>
                 <Stack.Screen
                   name={session.role === "ADMIN" ? "Admin" : "Home"}
-                  component={Dashboard}
+                  component={session.role === "ADMIN" ? AdminScreen : HomeScreen}
                 />
                 {session.role === "ADMIN" && (
                   <>
-                    <Stack.Screen name="Customers" component={CustomerForm} />
-                    <Stack.Screen name="Services" component={Services} />
+                    <Stack.Screen name="Customers" component={CustomersScreen} />
+                    <Stack.Screen name="Services" component={ServicesScreen} />
                   </>
                 )}
-                <Stack.Screen name="Pets" component={Pets} />
-                <Stack.Screen name="NewPet" component={NewPet} />
+                <Stack.Screen name="Pets" component={PetsScreen} />
+                <Stack.Screen name="NewPet" component={NewPetScreen} />
                 <Stack.Screen
                   name="Charges"
                   component={session.role === "ADMIN" ? Management : ChargeList}
                 />
-                <Stack.Screen name="History" component={HistoryRoute} />
-                <Stack.Screen name="Profile" component={Profile} />
+                <Stack.Screen name="History" component={HistoryScreen} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
                 <Stack.Screen name="Pagamento" component={Payment} />
               </>
             )}
@@ -153,6 +150,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     backgroundColor: colors.background,
   },
+  authContent: { maxWidth: Platform.OS === "web" ? 390 : undefined },
   errorContainer: {
     flex: 1,
     justifyContent: "center",

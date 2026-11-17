@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { api } from '../../services/api';
+import { showConfirm } from '../../utils/alert';
 import CustomerIcon from '../../components/CustomerIcons';
 import { colors } from '../../theme/colors';
 
@@ -24,7 +25,7 @@ const initialValues = {
   email: '',
   phone: '',
   cpf: '',
-  address: '',
+  streetName: '', streetNumber: '', neighborhood: '', city: '', federalUnit: '', zipCode: '', password: '',
   petName: '',
   breed: '',
 };
@@ -53,12 +54,10 @@ const requiredFields = [
     icon: 'fingerprint',
     keyboardType: 'number-pad',
   },
-  {
-    key: 'address',
-    label: 'Endereço',
-    placeholder: 'ex: Rua Oscar Freire, 1000 - SP',
-    icon: 'map',
-  },
+  ...[
+    ['streetName', 'Rua'], ['streetNumber', 'Número'], ['neighborhood', 'Bairro'],
+    ['city', 'Cidade'], ['federalUnit', 'UF'], ['zipCode', 'CEP'], ['password', 'Senha inicial'],
+  ].map(([key, label]) => ({ key, label, placeholder: label, icon: key === 'password' ? 'person' : 'map' })),
 ];
 
 function ScreenIcon({ name, size = 18, color = colors.brown }) {
@@ -142,7 +141,8 @@ function FormField({ field, value, onChangeText, error, inputRef, onSubmitEditin
           ref={inputRef}
           accessibilityLabel={label}
           accessibilityHint={error || undefined}
-          autoCapitalize={field.autoCapitalize || 'words'}
+          secureTextEntry={field.key === 'password'}
+          autoCapitalize={field.key === 'password' ? 'none' : field.autoCapitalize || 'words'}
           autoCorrect={field.key === 'email' ? false : undefined}
           keyboardType={field.keyboardType || 'default'}
           onChangeText={onChangeText}
@@ -164,6 +164,7 @@ export default function CustomersScreen({ navigation, route }) {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [submitNotice, setSubmitNotice] = useState('');
   const inputRefs = useRef({});
 
@@ -182,34 +183,45 @@ export default function CustomersScreen({ navigation, route }) {
     else navigation.navigate(homeRoute, { homeRoute });
   };
 
-  const confirmLeave = () => {
-    if (!isDirty) {
+  const confirmLeave = async () => {
+    if (!isDirty || await showConfirm('Descartar cadastro?', 'Os dados preenchidos serão perdidos.')) {
       leaveScreen();
-      return;
     }
-
-    Alert.alert('Descartar cadastro?', 'Os dados preenchidos serão perdidos.', [
-      { text: 'Continuar preenchendo', style: 'cancel' },
-      { text: 'Descartar', style: 'destructive', onPress: leaveScreen },
-    ]);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (saving) return;
     const nextErrors = validate(values);
     setAttemptedSubmit(true);
     setErrors(nextErrors);
     setSubmitNotice('');
 
-    const firstInvalid = [...requiredFields.filter((field) => field.key !== 'address'),
+    const firstInvalid = [...requiredFields,
       { key: 'petName' }, { key: 'breed' }].find((field) => nextErrors[field.key]);
     if (firstInvalid) {
       inputRefs.current[firstInvalid.key]?.focus();
       return;
     }
 
-    setSubmitNotice(
-      'Dados validados neste dispositivo. O cadastro não foi enviado: a integração depende do contrato da API.',
-    );
+    const { tutorName, petName, breed, ...details } = values;
+    const customer = { ...details, name: tutorName.trim() };
+    setSaving(true);
+    try {
+      if (petName.trim()) {
+        await api.post('/admin/customers/with-pet', {
+          customer, pet: { name: petName.trim(), breed: breed.trim(), species: 'Cachorro' },
+        });
+      } else {
+        await api.post('/admin/customers', customer);
+      }
+      setValues(initialValues);
+      setAttemptedSubmit(false);
+      setSubmitNotice('Cadastro salvo.');
+    } catch (error) {
+      setSubmitNotice(error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -259,7 +271,7 @@ export default function CustomersScreen({ navigation, route }) {
             />
             <Text style={styles.pageTitle}>Cadastrar Novo Cliente</Text>
             <Text style={styles.introDescription}>
-              Adicione um tutor e seu pet ao sistema do resort. As credenciais de acesso serão enviadas por e-mail e WhatsApp.
+              Adicione um tutor e seu pet ao sistema do resort.
             </Text>
           </View>
 
@@ -273,7 +285,7 @@ export default function CustomersScreen({ navigation, route }) {
             {requiredFields.map((field, index) => (
               <FormField
                 key={field.key}
-                field={{ ...field, required: field.key !== 'address' }}
+                field={field}
                 value={values[field.key]}
                 onChangeText={(value) => updateField(field.key, value)}
                 error={errors[field.key]}
@@ -322,6 +334,7 @@ export default function CustomersScreen({ navigation, route }) {
 
           <Pressable
             accessibilityRole="button"
+            disabled={saving}
             onPress={handleSubmit}
             style={({ pressed }) => [styles.submitButton, pressed && styles.submitPressed]}
           >
