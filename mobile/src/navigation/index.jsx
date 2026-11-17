@@ -15,6 +15,7 @@ import ProfileScreen from "../screens/Profile";
 import NewPetScreen from "../screens/NewPet";
 import SignupScreen from "../screens/Signup";
 import CustomersScreen from "../screens/Customers";
+import CustomersListScreen from "../screens/CustomerList";
 import ServicesScreen from "../screens/Services";
 import LoginScreen from "../screens/Login";
 import { useAuth } from "../contexts/AuthContext";
@@ -38,6 +39,7 @@ const linking = {
       Admin: "admin",
       Profile: "perfil",
       Customers: "customers",
+      CustomersList: "customers/list",
       Pets: "pets",
       NewPet: "novo-pet",
       Services: "services",
@@ -117,6 +119,7 @@ export default function Navigation() {
                 {session.role === "ADMIN" && (
                   <>
                     <Stack.Screen name="Customers" component={CustomersScreen} />
+                    <Stack.Screen name="CustomersList" component={CustomersListScreen} />
                     <Stack.Screen name="Services" component={ServicesScreen} />
                   </>
                 )}

@@ -307,7 +307,8 @@ export default function AdminScreen({ navigation }) {
             </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityHint="Abre o cadastro de clientes existente."
+              accessibilityLabel="Cadastrar novo cliente"
+              accessibilityHint="Abre o cadastro de clientes."
               onPress={() => goTo('Customers')}
               style={styles.clientButton}
             >
@@ -358,7 +359,12 @@ export default function AdminScreen({ navigation }) {
                     <HomeIcon name="addCircle" />
                     <Text style={[styles.quickActionLabel, styles.quickActionPrimaryLabel]}>Cobrança</Text>
                   </Pressable>
-                  <Pressable onPress={() => goTo('Customers')} style={styles.quickAction}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Ver clientes cadastrados"
+                    onPress={() => goTo('CustomersList')}
+                    style={styles.quickAction}
+                  >
                     <HomeIcon name="quickCustomers" />
                     <Text style={styles.quickActionLabel}>Clientes</Text>
                   </Pressable>
