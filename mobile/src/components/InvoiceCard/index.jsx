@@ -19,10 +19,20 @@ const statusStyles = {
     label: styles.overdueBadgeLabel,
     text: 'VENCIDO',
   },
+  cancelado: {
+    badge: styles.cancelledBadge,
+    label: styles.cancelledBadgeLabel,
+    text: 'CANCELADO',
+  },
+  desconhecido: {
+    badge: styles.unknownBadge,
+    label: styles.unknownBadgeLabel,
+    text: 'STATUS INDISPONÍVEL',
+  },
 };
 
 export default function InvoiceCard({ dueDate, dateLabel = 'Vencimento', title, status, amount, onPress }) {
-  const statusStyle = statusStyles[status];
+  const statusStyle = statusStyles[status] || statusStyles.desconhecido;
   const isPending = status === 'pendente';
 
   return (

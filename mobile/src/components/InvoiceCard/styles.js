@@ -81,6 +81,20 @@ export const styles = StyleSheet.create({
   overdueBadgeLabel: {
     color: colors.primary,
   },
+  cancelledBadge: {
+    backgroundColor: '#F3F1EF',
+    borderColor: '#DED8D2',
+  },
+  cancelledBadgeLabel: {
+    color: '#6E5B58',
+  },
+  unknownBadge: {
+    backgroundColor: '#F3F1EF',
+    borderColor: '#DED8D2',
+  },
+  unknownBadgeLabel: {
+    color: '#6E5B58',
+  },
   cardBottom: {
     paddingTop: 11,
     flexDirection: 'row',

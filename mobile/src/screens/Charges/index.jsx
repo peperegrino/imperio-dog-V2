@@ -5,6 +5,7 @@ import { SvgXml } from 'react-native-svg';
 
 import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
 import Button from '../../components/Button';
+import { date, money, ResourceState, useResource } from '../../components/ConnectedUI';
 import InvoiceCard from '../../components/InvoiceCard';
 import { colors } from '../../theme/colors';
 import { bellXml } from '../Home/svgIcons';
@@ -18,7 +19,17 @@ const filters = [
   { label: 'Pendentes', value: 'pendente' },
   { label: 'Pagas', value: 'pago' },
   { label: 'Vencidas', value: 'vencido' },
+  { label: 'Canceladas', value: 'cancelado' },
+  { label: 'Outras', value: 'desconhecido' },
 ];
+
+const chargeStatuses = {
+  PENDING: 'pendente',
+  PAYMENT_IN_PROCESS: 'pendente',
+  PAID: 'pago',
+  OVERDUE: 'vencido',
+  CANCELED: 'cancelado',
+};
 
 function Header({ navigation, homeRoute }) {
   const goBack = () => {
@@ -82,7 +93,14 @@ function EmptyChargesState({ onBackToHome }) {
 
 function TutorChargesScreen({ navigation, route }) {
   const homeRoute = route.params?.homeRoute || 'Home';
-  const invoices = route.params?.invoices || [];
+  const resource = useResource('/charges/my-charges');
+  const invoices = (Array.isArray(resource.data) ? resource.data : []).map((charge) => ({
+    id: charge.id,
+    dueDate: date(charge.dueDate),
+    title: charge.serviceName || `Cobrança #${charge.id}`,
+    status: chargeStatuses[charge.status] || 'desconhecido',
+    amount: money(charge.amount),
+  }));
   const [activeFilter, setActiveFilter] = useState('todas');
   const visibleInvoices = activeFilter === 'todas'
     ? invoices
@@ -97,7 +115,9 @@ function TutorChargesScreen({ navigation, route }) {
         contentContainerStyle={styles.main}
         showsVerticalScrollIndicator={false}
       >
-        {invoices.length === 0 ? (
+        {resource.loading || resource.error ? (
+          <ResourceState resource={resource} />
+        ) : invoices.length === 0 ? (
           <EmptyChargesState onBackToHome={goToHome} />
         ) : (
           <>
@@ -132,8 +152,11 @@ function TutorChargesScreen({ navigation, route }) {
               <View style={styles.invoiceList}>
                 {visibleInvoices.map((invoice) => (
                   <InvoiceCard
-                    key={invoice.dueDate}
-                    onPress={() => navigation.navigate('Pagamento', { homeRoute })}
+                    key={invoice.id}
+                    onPress={() => navigation.navigate('Pagamento', {
+                      chargeId: invoice.id,
+                      homeRoute,
+                    })}
                     {...invoice}
                   />
                 ))}
