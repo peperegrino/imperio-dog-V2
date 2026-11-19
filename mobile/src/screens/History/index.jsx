@@ -19,6 +19,7 @@ const filters = [
 const statusDetails = {
   paid: { label: 'Pago', tone: 'paid' },
   pending: { label: 'Pendente', tone: 'pending' },
+  payment_in_process: { label: 'Em processamento', tone: 'progress' },
   overdue: { label: 'Vencido', tone: 'overdue' },
   cancelled: { label: 'Cancelado', tone: 'cancelled' },
 };
@@ -80,10 +81,12 @@ export default function HistoryScreen({ navigation }) {
     originalStatus: charge.status,
   }));
   const visibleCharges = charges.filter((charge) =>
-    activeFilter === 'all' || charge.status === activeFilter
+    activeFilter === 'all' || (activeFilter === 'pending'
+      ? ['pending', 'payment_in_process'].includes(charge.status)
+      : charge.status === activeFilter)
   );
   const paidCount = charges.filter((charge) => charge.status === 'paid').length;
-  const pendingCount = charges.filter((charge) => charge.status === 'pending').length;
+  const pendingCount = charges.filter((charge) => ['pending', 'payment_in_process'].includes(charge.status)).length;
 
   const goBack = () => {
     if (navigation.canGoBack()) {
@@ -168,7 +171,7 @@ export default function HistoryScreen({ navigation }) {
           })}
         </ScrollView>
 
-        {visibleCharges.length ? (
+        {resource.loading || resource.error ? null : visibleCharges.length ? (
           visibleCharges.map((charge) => (
             <ChargeHistoryCard charge={charge} key={charge.id} openCharge={() => navigation.navigate("Pagamento", { chargeId: charge.id })} />
           ))

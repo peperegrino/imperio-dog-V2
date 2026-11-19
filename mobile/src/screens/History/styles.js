@@ -37,7 +37,7 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     width: '100%',
-    maxWidth: 560,
+    maxWidth: 390,
     alignSelf: 'center',
     paddingHorizontal: 18,
     paddingTop: 22,
@@ -208,6 +208,9 @@ export const styles = StyleSheet.create({
   statusPill_pending: {
     backgroundColor: '#FAF5EE',
   },
+  statusPill_progress: {
+    backgroundColor: '#F1EEFA',
+  },
   statusPill_overdue: {
     backgroundColor: '#FAF1F2',
   },
@@ -226,6 +229,9 @@ export const styles = StyleSheet.create({
   },
   statusText_pending: {
     color: '#8A6237',
+  },
+  statusText_progress: {
+    color: '#63518A',
   },
   statusText_overdue: {
     color: colors.primary,

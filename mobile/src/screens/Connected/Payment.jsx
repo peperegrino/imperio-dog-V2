@@ -21,6 +21,7 @@ import {
 export default function Payment({ navigation, route }) {
   const { session } = useAuth();
   const homeRoute = session.role === "ADMIN" ? "Admin" : "Home";
+  const chargesRoute = session.role === "ADMIN" ? "CustomerCharges" : "Charges";
   const id = route.params?.chargeId;
   const resource = useResource(`/charges/${id}`);
   const [message, setMessage] = useState(""),
@@ -60,7 +61,7 @@ export default function Payment({ navigation, route }) {
     return (
       <Page title="Detalhes da cobrança" navigation={navigation}>
         <ResourceState resource={resource} />
-        <Action title="Voltar às cobranças" onPress={() => navigation.navigate("Charges")} />
+        <Action title="Voltar às cobranças" onPress={() => navigation.navigate(chargesRoute, { homeRoute })} />
         <Message>{message}</Message>
       </Page>
     );
@@ -93,7 +94,7 @@ export default function Payment({ navigation, route }) {
           showAlert("Não foi possível copiar", error.message);
         }
       }}
-      onBack={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Charges")}
+      onBack={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate(chargesRoute, { homeRoute })}
       onProfilePress={() => navigation.navigate("Profile")}
       onNavigate={(routeName) => navigation.navigate(routeName)}
       onViewFullBoleto={pdf}

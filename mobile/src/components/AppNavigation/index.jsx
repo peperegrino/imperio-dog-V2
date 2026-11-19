@@ -56,13 +56,14 @@ export default function AppNavigation({
     <View style={styles.blur}>
       <View style={styles.container}>
         {items.map((item) => {
-          const isActive = activeRoute === item.key;
+          const route = item.key === 'Home' ? homeRoute
+            : item.key === 'Charges' && homeRoute === 'Admin' ? 'CustomerCharges'
+              : item.key;
+          const isActive = activeRoute === item.key || activeRoute === route;
           const xml = item.icon.replace(
             /fill="#[A-Fa-f0-9]+"/,
             `fill="${isActive ? colors.primary : inactiveColor}"`,
           );
-          const route = item.key === 'Home' ? homeRoute : item.key;
-
           return (
             <Pressable
               accessibilityLabel={item.label}

@@ -53,4 +53,13 @@ export const styles = StyleSheet.create({
     color: '#694B42',
     fontSize: 13,
   },
+  detailsLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+  },
+  detailsLinkText: {
+    color: '#722F37',
+    fontSize: 13,
+    fontWeight: '700',
+  },
 });

@@ -346,7 +346,7 @@ export default function AdminScreen({ navigation }) {
               </View>
 
               <View style={styles.section}>
-                <SectionHeading title="Resumo das cobranças" action="Ver faturas" onAction={() => goTo('Charges')} />
+                <SectionHeading title="Resumo das cobranças" action="Ver faturas" onAction={() => goTo('CustomerCharges')} />
                 <View style={styles.summaryGrid}>
                   {summaryCards.map((item) => <ChargeSummaryCard key={item.label} item={item} />)}
                 </View>
@@ -395,7 +395,7 @@ export default function AdminScreen({ navigation }) {
               </View>
 
               <View style={styles.section}>
-                <SectionHeading title="Últimas cobranças" action="Ver todas" onAction={() => goTo('Charges')} />
+                <SectionHeading title="Últimas cobranças" action="Ver todas" onAction={() => goTo('CustomerCharges')} />
                 {recentCharges.length ? (
                   <View style={styles.recentList}>
                     {recentCharges.map((charge) => (
@@ -421,7 +421,7 @@ export default function AdminScreen({ navigation }) {
 
       <View style={styles.bottomNavigation}>
         <BottomTab label="Início" icon="home" active disabled />
-        <BottomTab label="Faturas" icon="invoices" onPress={() => goTo('Charges')} />
+        <BottomTab label="Faturas" icon="invoices" onPress={() => goTo('CustomerCharges')} />
         <BottomTab label="Histórico" icon="history" onPress={() => goTo('History')} />
         <BottomTab label="Perfil" icon="profile" onPress={() => goTo('Profile')} />
       </View>

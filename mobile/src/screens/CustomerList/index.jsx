@@ -68,6 +68,13 @@ export default function CustomersListScreen({ navigation }) {
                 <Text style={styles.detail}>
                   CPF: {customer.cpf || 'Não informado'}
                 </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => navigation.navigate('CustomerDetails', { customerId: customer.id })}
+                  style={styles.detailsLink}
+                >
+                  <Text style={styles.detailsLinkText}>Ver detalhes completos</Text>
+                </Pressable>
               </View>
             )}
           </Card>

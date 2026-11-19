@@ -16,7 +16,7 @@ export const styles = StyleSheet.create({
   },
   pageContent: {
     width: '100%',
-    maxWidth: 540,
+    maxWidth: 390,
     alignSelf: 'center',
   },
   header: {
@@ -508,7 +508,7 @@ export const styles = StyleSheet.create({
   },
   bottomNavigation: {
     width: '100%',
-    maxWidth: 540,
+    maxWidth: 390,
     height: 64,
     alignSelf: 'center',
     flexDirection: 'row',

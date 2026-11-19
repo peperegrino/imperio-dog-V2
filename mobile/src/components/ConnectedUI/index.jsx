@@ -97,10 +97,11 @@ export function ResourceState({ resource }) {
   return resource.loading ? (
     <ActivityIndicator color="#722F37" />
   ) : resource.error ? (
-    <>
-      <Message>{resource.error}</Message>
+    <View style={s.errorState}>
+      <Text style={s.errorTitle}>Não foi possível carregar os dados</Text>
+      <Text accessibilityLiveRegion="polite" style={s.errorMessage}>{resource.error}</Text>
       <Action title="Tentar novamente" onPress={resource.reload} />
-    </>
+    </View>
   ) : null;
 }
 export function Choose({ label, items, value, onChange }) {
@@ -165,7 +166,7 @@ export function Page({ title, navigation, children, presentation }) {
   );
 }
 export const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#F8F5F0" },
+  page: { flex: 1, alignSelf: "center", width: "100%", maxWidth: 390, backgroundColor: "#F8F5F0" },
   header: {
     padding: 16,
     flexDirection: "row",
@@ -202,6 +203,16 @@ export const s = StyleSheet.create({
   },
   buttonText: { color: "#fff", fontWeight: "600" },
   message: { color: "#694B42", lineHeight: 22 },
+  errorState: {
+    padding: 16,
+    gap: 8,
+    backgroundColor: "#FFF8F8",
+    borderWidth: 1,
+    borderColor: "#F3D0D0",
+    borderRadius: 14,
+  },
+  errorTitle: { color: "#722F37", fontWeight: "700", fontSize: 13 },
+  errorMessage: { color: "#694B42", lineHeight: 20, fontSize: 12 },
   option: {
     paddingVertical: 12,
     borderBottomWidth: 1,

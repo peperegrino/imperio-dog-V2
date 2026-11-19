@@ -16,8 +16,11 @@ import NewPetScreen from "../screens/NewPet";
 import SignupScreen from "../screens/Signup";
 import CustomersScreen from "../screens/Customers";
 import CustomersListScreen from "../screens/CustomerList";
+import CustomerChargesScreen from "../screens/CustomerCharges/index.jsx";
+import CustomerDetailsScreen from "../screens/CustomerDetails";
 import ServicesScreen from "../screens/Services";
 import LoginScreen from "../screens/Login";
+import SessionExpiredScreen from "../screens/SessionExpired";
 import { useAuth } from "../contexts/AuthContext";
 import {
   Management,
@@ -40,6 +43,8 @@ const linking = {
       Profile: "perfil",
       Customers: "customers",
       CustomersList: "customers/list",
+      CustomerDetails: "customers/:customerId",
+      CustomerCharges: "admin/charges",
       Pets: "pets",
       NewPet: "novo-pet",
       Services: "services",
@@ -56,6 +61,9 @@ export default function Navigation() {
   useEffect(() => {
     setUnauthorizedHandler(async () => {
       await signOut();
+      if (navigationRef.isReady()) {
+        navigationRef.resetRoot({ index: 0, routes: [{ name: "SessionExpired" }] });
+      }
     });
 
     return () => setUnauthorizedHandler(undefined);
@@ -77,7 +85,7 @@ export default function Navigation() {
 
   function handleNavigationReady() {
     const currentRoute = navigationRef.getCurrentRoute()?.name;
-    if (!session && !["Login", "Signup"].includes(currentRoute)) {
+    if (!session && !["Login", "Signup", "SessionExpired"].includes(currentRoute)) {
       navigationRef.resetRoot({ index: 0, routes: [{ name: "Login" }] });
     } else if (
       session &&
@@ -105,6 +113,7 @@ export default function Navigation() {
             }
             screenOptions={{ headerShown: false }}
           >
+            <Stack.Screen name="SessionExpired" component={SessionExpiredScreen} />
             {!session ? (
               <>
                 <Stack.Screen name="Login" component={LoginScreen} />
@@ -120,6 +129,8 @@ export default function Navigation() {
                   <>
                     <Stack.Screen name="Customers" component={CustomersScreen} />
                     <Stack.Screen name="CustomersList" component={CustomersListScreen} />
+                    <Stack.Screen name="CustomerDetails" component={CustomerDetailsScreen} />
+                    <Stack.Screen name="CustomerCharges" component={CustomerChargesScreen} />
                     <Stack.Screen name="Services" component={ServicesScreen} />
                   </>
                 )}

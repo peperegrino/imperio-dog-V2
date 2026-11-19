@@ -17,7 +17,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     alignSelf: 'center',
     backgroundColor: colors.background,
-    maxWidth: 430,
+    maxWidth: 390,
     width: '100%',
   },
   header: {
@@ -173,6 +173,13 @@ export const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 15,
   },
+  petMeta: {
+    marginTop: 2,
+    color: colors.textGray,
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 9,
+    lineHeight: 14,
+  },
   petDates: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -299,6 +306,12 @@ export const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.medium,
     fontSize: 9,
     lineHeight: 13,
+  },
+  serviceChevron: {
+    marginLeft: 6,
+    color: colors.brown,
+    fontFamily: typography.fontFamily.bold,
+    fontSize: 20,
   },
   statusPill: {
     alignSelf: 'flex-start',

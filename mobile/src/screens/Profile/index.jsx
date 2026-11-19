@@ -291,7 +291,7 @@ export default function ProfileScreen({ navigation }) {
           <ProfileIcon name="home" size={18} color="#6E5B58" />
           <Text style={styles.tabLabel}>Início</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Charges', { homeRoute })} style={styles.tabItem}>
+        <Pressable accessibilityRole="button" onPress={() => navigation.navigate(homeRoute === 'Admin' ? 'CustomerCharges' : 'Charges', { homeRoute })} style={styles.tabItem}>
           <ProfileIcon name="receipt" size={18} color="#6E5B58" />
           <Text style={styles.tabLabel}>Faturas</Text>
         </Pressable>

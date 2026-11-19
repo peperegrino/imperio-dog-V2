@@ -167,6 +167,18 @@ export default function HomeScreen({ navigation }) {
   const visibleCharges = useMemo(() => {
     return filterCharges(charges, activeFilter);
   }, [activeFilter, charges]);
+  const billedServices = useMemo(() => {
+    const byName = new Map();
+    charges.forEach((charge) => {
+      const name = charge.serviceName?.trim();
+      if (!name) return;
+      const entry = byName.get(name) || { name, count: 0, pets: new Set(), chargeId: charge.id };
+      entry.count += 1;
+      if (charge.petName) entry.pets.add(charge.petName);
+      byName.set(name, entry);
+    });
+    return [...byName.values()];
+  }, [charges]);
 
   const hasPendingCharges = openChargesForTutor.length > 0;
   const currentCharge = openChargesForTutor[0] || charges[0] || null;
@@ -260,6 +272,14 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </View>
 
+            <View style={styles.sectionHeading}>
+              <Text style={styles.sectionTitle}>Meus pets</Text>
+              <View style={styles.inProgressLabel}>
+                <View style={styles.brownDot} />
+                <Text style={styles.inProgressText}>{pets.length} pet{pets.length === 1 ? '' : 's'}</Text>
+              </View>
+            </View>
+
             {pets.length ? pets.map((pet) => (
               <View key={pet.id} style={styles.petCard}>
                 <View style={styles.petAvatar}>
@@ -270,6 +290,11 @@ export default function HomeScreen({ navigation }) {
                   <Text style={styles.petDescription}>
                     {[pet.species, pet.breed].filter(Boolean).join(' · ') || 'Espécie não informada'}
                   </Text>
+                  {pet.sex || pet.weight != null ? (
+                    <Text style={styles.petMeta}>
+                      {[pet.sex, pet.weight != null ? `${pet.weight} kg` : null].filter(Boolean).join(' · ')}
+                    </Text>
+                  ) : null}
                   {formatDate(pet.birthDate) ? (
                     <View style={styles.petDates}>
                       <Icon xml={calendarXml} size={11} />
@@ -302,12 +327,31 @@ export default function HomeScreen({ navigation }) {
             )}
 
             <View style={styles.sectionHeading}>
-              <Text style={styles.sectionTitle}>Meus pets</Text>
-              <View style={styles.inProgressLabel}>
-                <View style={styles.brownDot} />
-                <Text style={styles.inProgressText}>{pets.length} pet{pets.length === 1 ? '' : 's'}</Text>
-              </View>
+              <Text style={styles.sectionTitle}>Serviços nas cobranças</Text>
+              <Text style={styles.inProgressText}>{billedServices.length} serviços</Text>
             </View>
+            {billedServices.length ? billedServices.map((service) => (
+              <Pressable
+                key={service.name}
+                accessibilityRole="button"
+                onPress={() => openCharges(service.chargeId)}
+                style={styles.serviceCard}
+              >
+                <View style={styles.serviceIconBath}><Icon xml={receiptXml} size={16} /></View>
+                <View style={styles.serviceDetails}>
+                  <Text style={styles.serviceTitle}>{service.name}</Text>
+                  <Text style={styles.serviceDescription}>
+                    {service.count} cobrança{service.count === 1 ? '' : 's'}
+                    {service.pets.size ? ` · ${[...service.pets].join(', ')}` : ''}
+                  </Text>
+                </View>
+                <Text style={styles.serviceChevron}>›</Text>
+              </Pressable>
+            )) : (
+              <View style={styles.emptyStateCard}>
+                <Text style={styles.emptyStateText}>Não há serviços descritos nas cobranças carregadas.</Text>
+              </View>
+            )}
 
             {currentCharge ? (
               <View style={styles.currentChargeCard}>
