@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -211,15 +210,6 @@ export default function ServicesScreen({ navigation, route }) {
         </Pressable>
         <Text style={styles.headerTitle}>Serviços e preços</Text>
         <View style={styles.headerActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notificações"
-            onPress={() => Alert.alert('Notificações', 'Nenhuma notificação nova.')}
-            style={styles.notificationButton}
-          >
-            <Icon name="bell" size={22} color="#332522" />
-            <View style={styles.notificationDot} />
-          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Perfil do administrador"

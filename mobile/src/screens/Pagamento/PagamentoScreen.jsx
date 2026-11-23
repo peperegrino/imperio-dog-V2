@@ -69,7 +69,7 @@ export default function PagamentoScreen({
   onProfilePress,
   onNavigate,
   onViewFullBoleto,
-  onBackToDetails,
+  onBackToCharges,
   homeRoute = 'Home',
 }) {
   const insets = useSafeAreaInsets();
@@ -162,6 +162,7 @@ export default function PagamentoScreen({
                   style={({ pressed }) => [
                     styles.primaryButton,
                     shadows.button,
+                    !data.digitableLine && { opacity: 0.5 },
                     pressed && styles.pressed,
                   ]}
                 >
@@ -179,11 +180,12 @@ export default function PagamentoScreen({
                 style={({ pressed }) => [
                   styles.secondaryButton,
                   shadows.small,
+                  (downloadBusy || !data.ticketUrl) && { opacity: 0.5 },
                   pressed && styles.pressed,
                 ]}
               >
                 <Icon xml={eyeXml} frameW={18.333} frameH={12.5} svgW={19} svgH={13} />
-                <Text style={styles.secondaryButtonText}>{downloadBusy ? 'Baixando…' : 'Baixar boleto PDF'}</Text>
+                <Text style={styles.secondaryButtonText}>{downloadBusy ? 'Baixando…' : data.ticketUrl ? 'Baixar boleto PDF' : 'PDF do boleto indisponível'}</Text>
               </Pressable>
 
               {/* Código de barras */}
@@ -205,7 +207,7 @@ export default function PagamentoScreen({
                     accessibilityLabel="Copiar código de barras"
                     disabled={!data.barcode}
                     onPress={() => copy(data.barcode)}
-                    style={({ pressed }) => [styles.smallCopyButton, pressed && styles.pressed]}
+                    style={({ pressed }) => [styles.smallCopyButton, !data.barcode && { opacity: 0.5 }, pressed && styles.pressed]}
                   >
                     <Icon xml={copySmallXml} frameW={10.625} frameH={12.5} svgW={11} svgH={13} />
                     <Text style={styles.smallCopyText}>Copiar código</Text>
@@ -264,10 +266,10 @@ export default function PagamentoScreen({
             <View style={styles.backLinkRow}>
               <Pressable
                 accessibilityRole="link"
-                onPress={onBackToDetails}
+                onPress={onBackToCharges}
                 style={({ pressed }) => pressed && styles.pressed}
               >
-                <Text style={styles.backLinkText}>← Voltar para detalhes da cobrança</Text>
+                <Text style={styles.backLinkText}>← Voltar às cobranças</Text>
               </Pressable>
             </View>
           </View>

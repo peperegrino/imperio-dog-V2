@@ -23,7 +23,9 @@ export default function Payment({ navigation, route }) {
   const homeRoute = session.role === "ADMIN" ? "Admin" : "Home";
   const chargesRoute = session.role === "ADMIN" ? "CustomerCharges" : "Charges";
   const id = route.params?.chargeId;
-  const resource = useResource(`/charges/${id}`);
+  const hasChargeId = /^[1-9]\d*$/.test(String(id ?? ""));
+  const resource = useResource(hasChargeId ? `/charges/${id}` : null);
+  const backToCharges = () => navigation.navigate(chargesRoute, { homeRoute });
   const [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
   const c = resource.data;
@@ -61,7 +63,8 @@ export default function Payment({ navigation, route }) {
     return (
       <Page title="Detalhes da cobrança" navigation={navigation}>
         <ResourceState resource={resource} />
-        <Action title="Voltar às cobranças" onPress={() => navigation.navigate(chargesRoute, { homeRoute })} />
+        {!hasChargeId && <Message>Selecione uma cobrança na lista para ver seus detalhes.</Message>}
+        <Action title="Voltar às cobranças" onPress={backToCharges} />
         <Message>{message}</Message>
       </Page>
     );
@@ -98,7 +101,7 @@ export default function Payment({ navigation, route }) {
       onProfilePress={() => navigation.navigate("Profile")}
       onNavigate={(routeName) => navigation.navigate(routeName)}
       onViewFullBoleto={pdf}
-      onBackToDetails={() => resource.reload()}
+      onBackToCharges={backToCharges}
     />
   );
 }

@@ -31,8 +31,9 @@ export const statusLabel = {
 export function useResource(path) {
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
-    [loading, setLoading] = useState(true);
+    [loading, setLoading] = useState(Boolean(path));
   const reload = useCallback(async () => {
+    if (!path) return;
     setLoading(true);
     setError("");
     try {

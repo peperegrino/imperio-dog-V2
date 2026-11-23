@@ -96,18 +96,10 @@ export default function LoginScreen({ navigation, route }) {
             <View style={styles.optionsRow}>
               <Checkbox checked={lembrar} onPress={() => setLembrar((value) => !value)} />
               <Text style={styles.rememberLabel}>Manter sessão</Text>
-              <View style={styles.optionsSpacer} />
+            </View>
             {!!loginError && (
               <Text accessibilityRole="alert" style={styles.loginError}>{loginError}</Text>
             )}
-              <Pressable
-                accessibilityRole="link"
-                onPress={() => showAlert('Recuperação de senha', 'A recuperação por e-mail ainda não está disponível.')}
-                style={styles.forgotPasswordPressable}
-              >
-                <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
-              </Pressable>
-            </View>
             <View style={styles.submitButton}>
               <Button
                 label={isSubmitting ? 'Entrando...' : 'Entrar no Resort'}

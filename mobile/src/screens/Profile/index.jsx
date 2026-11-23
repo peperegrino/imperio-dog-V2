@@ -122,29 +122,13 @@ function ProfileField({ label, value, icon, editing, onChangeText, last = false 
   );
 }
 
-function PreferenceRow({ icon, title, subtitle, onPress, last = false, children }) {
-  return (
-    <Pressable
-      accessibilityRole={children ? 'switch' : 'button'}
-      onPress={onPress}
-      style={({ pressed }) => [styles.preferenceRow, last && styles.lastPreferenceRow, pressed && styles.pressed]}
-    >
-      <View style={styles.preferenceIcon}><ProfileIcon name={icon} size={16} /></View>
-      <View style={styles.preferenceText}>
-        <Text style={styles.preferenceTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.preferenceSubtitle}>{subtitle}</Text> : null}
-      </View>
-      {children || <ProfileIcon name="chevron" size={13} color="#B58C63" />}
-    </Pressable>
-  );
-}
-
 export default function ProfileScreen({ navigation }) {
   const { session, signOut } = useAuth();
-  const homeRoute = session.role === 'ADMIN' ? 'Admin' : 'Home';
+  const admin = session.role === 'ADMIN';
+  const homeRoute = admin ? 'Admin' : 'Home';
   const insets = useSafeAreaInsets();
   const account = useResource('/account/me');
-  const pets = useResource('/account/pets');
+  const pets = useResource(admin ? null : '/account/pets');
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
   const editing = draft !== null;
@@ -167,7 +151,6 @@ export default function ProfileScreen({ navigation }) {
     }
   }
 
-  const showUnavailable = (feature) => showAlert(feature, 'Essa opção ainda não está disponível no aplicativo.');
   const navigateToPets = () => navigation.navigate('Pets', { homeRoute });
   const navigateHome = () => navigation.navigate(homeRoute, { homeRoute });
   const navigateBack = () => {
@@ -190,10 +173,6 @@ export default function ProfileScreen({ navigation }) {
         </Pressable>
         <Text style={styles.headerTitle}>Perfil</Text>
         <View style={styles.headerActions}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Notificações" onPress={() => showUnavailable('Notificações')} style={styles.headerAction}>
-            <ProfileIcon name="bell" size={18} color="#332522" />
-            <View style={styles.notificationDot} />
-          </Pressable>
           <View style={styles.headerAvatar}><ProfileIcon name="user" size={15} color={colors.white} /></View>
         </View>
       </View>
@@ -204,16 +183,11 @@ export default function ProfileScreen({ navigation }) {
       >
         <View style={styles.pageIntro}>
           <Text style={styles.pageTitle}>Meu Perfil</Text>
-          <Text style={styles.pageDescription}>Gerencie suas informações e preferências.</Text>
+          <Text style={styles.pageDescription}>Consulte e atualize seus dados de contato.</Text>
         </View>
 
         <ResourceState resource={account} />
         <View style={styles.identityCard}>
-          <View style={styles.identityCardTop}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Alterar foto de perfil" onPress={() => showUnavailable('Foto de perfil')} style={styles.smallEditButton}>
-              <ProfileIcon name="edit" size={13} />
-            </Pressable>
-          </View>
           <View style={styles.identityCenter}>
             <ProfileAvatar />
             <Text style={styles.identityName}>{profile.name}</Text>
@@ -229,18 +203,18 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
-        <View style={styles.section}>
+        {!admin && <View style={styles.section}>
           <SectionTitle icon="paw" headingStyle={styles.petsHeading}>MEUS PETS</SectionTitle>
           <ResourceState resource={pets} />
           {pets.data?.map((pet) => (
             <PetCard key={pet.id} name={pet.name} breed={pet.breed}
               size={pet.weight == null ? '' : `${pet.weight} kg`} icon="dog" onPress={navigateToPets} />
           ))}
-          <Pressable accessibilityRole="button" onPress={navigateToPets} style={({ pressed }) => [styles.addPetButton, pressed && styles.pressed]}>
+          <Pressable accessibilityRole="button" onPress={() => navigation.navigate('NewPet', { homeRoute })} style={({ pressed }) => [styles.addPetButton, pressed && styles.pressed]}>
             <ProfileIcon name="plus" size={14} />
             <Text style={styles.addPetText}>Adicionar novo pet</Text>
           </Pressable>
-        </View>
+        </View>}
 
         <View style={styles.section}>
           <SectionTitle
@@ -257,20 +231,6 @@ export default function ProfileScreen({ navigation }) {
             <ProfileIcon name={editing ? 'check' : 'edit'} size={15} />
             <Text style={styles.editDataText}>{editing ? 'Salvar dados' : 'Editar dados'}</Text>
           </Pressable>
-        </View>
-
-        <View style={styles.section}>
-          <SectionTitle icon="lock">SEGURANÇA</SectionTitle>
-          <PreferenceRow icon="key" title="Alterar senha" onPress={() => showUnavailable('Alterar senha')} />
-        </View>
-
-        <View style={styles.section}>
-          <SectionTitle icon="settings">CONFIGURAÇÕES &amp; PREFERÊNCIAS</SectionTitle>
-          <View style={styles.preferencesCard}>
-            <PreferenceRow icon="receipt" title="Dados para emissão de Boletos" subtitle="Boleto bancário registrado CIP (Único método)" onPress={() => showUnavailable('Dados para emissão de boletos')} />
-            <PreferenceRow icon="clock" title="Segurança e senha" onPress={() => showUnavailable('Segurança e senha')} />
-            <PreferenceRow icon="document" title="Termos de uso e privacidade" onPress={() => showUnavailable('Termos de uso e privacidade')} last />
-          </View>
         </View>
 
         <Pressable accessibilityRole="button" onPress={handleLogout} style={({ pressed }) => [styles.logoutButton, pressed && styles.pressed]}>
