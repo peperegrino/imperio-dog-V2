@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { api, setSessionToken, ROLE_STORAGE_KEY, TOKEN_STORAGE_KEY } from '../services/api';
+import { api, setSessionToken, setUnauthorizedHandler, ROLE_STORAGE_KEY, TOKEN_STORAGE_KEY } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -34,6 +34,7 @@ function getLoginDetails(response) {
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [initializationError, setInitializationError] = useState(null);
 
@@ -91,18 +92,33 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
     setSessionToken(null);
+    await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
     setSession(null);
+    setSessionExpired(false);
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(async () => {
+      setSessionToken(null);
+      try {
+        await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
+      } finally {
+        setSession(null);
+        setSessionExpired(true);
+      }
+    });
+    return () => setUnauthorizedHandler(undefined);
   }, []);
 
   const value = useMemo(() => ({
     session,
+    sessionExpired,
     isLoading,
     initializationError,
     signIn,
     signOut,
-  }), [session, isLoading, initializationError, signIn, signOut]);
+  }), [session, sessionExpired, isLoading, initializationError, signIn, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

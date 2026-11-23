@@ -27,6 +27,7 @@ export default function LoginScreen({ navigation, route }) {
   const [perfilAtivo, setPerfilAtivo] = useState('tutor');
   const [lembrar, setLembrar] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const { signIn } = useAuth();
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function LoginScreen({ navigation, route }) {
       return;
     }
 
+    setLoginError('');
     setIsSubmitting(true);
     try {
       await signIn(email.trim(), senha, lembrar);
@@ -49,7 +51,7 @@ export default function LoginScreen({ navigation, route }) {
       const message = error instanceof ApiError && error.status === 401
         ? 'Confira o e-mail e a senha e tente novamente.'
         : error.message || 'Tente novamente mais tarde.';
-      showAlert('Não foi possível entrar', message);
+      setLoginError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -95,6 +97,9 @@ export default function LoginScreen({ navigation, route }) {
               <Checkbox checked={lembrar} onPress={() => setLembrar((value) => !value)} />
               <Text style={styles.rememberLabel}>Manter sessão</Text>
               <View style={styles.optionsSpacer} />
+            {!!loginError && (
+              <Text accessibilityRole="alert" style={styles.loginError}>{loginError}</Text>
+            )}
               <Pressable
                 accessibilityRole="link"
                 onPress={() => showAlert('Recuperação de senha', 'A recuperação por e-mail ainda não está disponível.')}

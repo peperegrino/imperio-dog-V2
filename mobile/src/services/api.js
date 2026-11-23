@@ -30,7 +30,8 @@ async function request(path, options = {}) {
     );
   }
 
-  const token = sessionToken;
+  const endpoint = path.replace(/^\/+/, "");
+  const token = endpoint.startsWith("auth/") ? null : sessionToken;
   const headers = {
     Accept: "application/json",
     ...(options.body ? { "Content-Type": "application/json" } : {}),
@@ -38,7 +39,7 @@ async function request(path, options = {}) {
     ...options.headers,
   };
   const response = await fetch(
-    `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`,
+    `${baseUrl.replace(/\/+$/, "")}/${endpoint}`,
     {
       ...options,
       headers,

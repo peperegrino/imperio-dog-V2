@@ -88,6 +88,10 @@ export const styles = StyleSheet.create({
   submitButton: {
     marginTop: spacing.button,
   },
+  loginError: {
+    color: colors.primary,
+    fontFamily: typography.fontFamily.semibold,
+  },
   footerSpacer: {
     flex: 1,
     minHeight: spacing.xxl,

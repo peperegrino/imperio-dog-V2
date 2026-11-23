@@ -3,7 +3,6 @@ import {
   NavigationContainer,
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useEffect } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 
 import FontLoading from "../components/FontLoading";
@@ -27,7 +26,6 @@ import {
   ChargeList,
 } from "../screens/Connected";
 import Payment from "../screens/Connected/Payment";
-import { setUnauthorizedHandler } from "../services/api";
 import { colors } from "../theme/colors";
 
 const Stack = createNativeStackNavigator();
@@ -56,18 +54,7 @@ const linking = {
 };
 
 export default function Navigation() {
-  const { session, isLoading, initializationError, signOut } = useAuth();
-
-  useEffect(() => {
-    setUnauthorizedHandler(async () => {
-      await signOut();
-      if (navigationRef.isReady()) {
-        navigationRef.resetRoot({ index: 0, routes: [{ name: "SessionExpired" }] });
-      }
-    });
-
-    return () => setUnauthorizedHandler(undefined);
-  }, [signOut]);
+  const { session, sessionExpired, isLoading, initializationError } = useAuth();
 
   if (isLoading) {
     return <FontLoading />;
@@ -113,8 +100,9 @@ export default function Navigation() {
             }
             screenOptions={{ headerShown: false }}
           >
-            <Stack.Screen name="SessionExpired" component={SessionExpiredScreen} />
-            {!session ? (
+            {sessionExpired ? (
+              <Stack.Screen name="SessionExpired" component={SessionExpiredScreen} />
+            ) : !session ? (
               <>
                 <Stack.Screen name="Login" component={LoginScreen} />
                 <Stack.Screen name="Signup" component={SignupScreen} />
