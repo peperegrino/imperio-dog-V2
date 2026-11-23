@@ -39,16 +39,18 @@ export default function ServiceItemCard({
   onChangePrice,
   onChangeQuantity,
   onRemove,
+  maxQuantity,
 }) {
+  const atQuantityLimit = maxQuantity != null && service.quantity >= maxQuantity;
   return (
     <View style={styles.card}>
       <View style={styles.heading}>
         <View style={styles.serviceInfo}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>{service.name}</Text>
-            <View style={styles.sizePill}>
+            {onChangePrice && <View style={styles.sizePill}>
               <Text style={styles.sizeText}>Porte grande</Text>
-            </View>
+            </View>}
           </View>
           <Text style={styles.description}>{service.description}</Text>
         </View>
@@ -67,11 +69,11 @@ export default function ServiceItemCard({
           <View style={styles.priceColumn}>
             <View style={styles.fieldLabelRow}>
               <Text style={styles.fieldLabel}>VALOR UNITÁRIO</Text>
-              <Icon color="#A3A3A3" size={10} xml={calendarEditXml} />
+              {onChangePrice && <Icon color="#A3A3A3" size={10} xml={calendarEditXml} />}
             </View>
             <View style={styles.priceInput}>
               <Text style={styles.currencyPrefix}>R$</Text>
-              <TextInput
+              {onChangePrice ? <TextInput
                 accessibilityLabel={`Valor unitário de ${service.name}`}
                 keyboardType="decimal-pad"
                 onBlur={() =>
@@ -83,7 +85,7 @@ export default function ServiceItemCard({
                 selectTextOnFocus
                 style={styles.priceTextInput}
                 value={service.unitPriceText ?? formatUnitPrice(service.unitCents)}
-              />
+              /> : <Text style={styles.priceTextInput}>{formatUnitPrice(service.unitCents)}</Text>}
             </View>
           </View>
 
@@ -107,8 +109,10 @@ export default function ServiceItemCard({
               <Pressable
                 accessibilityLabel={`Aumentar quantidade de ${service.name}`}
                 accessibilityRole="button"
+                disabled={atQuantityLimit}
+                accessibilityState={{ disabled: atQuantityLimit }}
                 onPress={() => onChangeQuantity(service.quantity + 1)}
-                style={styles.stepperButton}
+                style={[styles.stepperButton, atQuantityLimit && styles.stepperButtonDisabled]}
               >
                 <Icon size={9} xml={addXml} />
               </Pressable>

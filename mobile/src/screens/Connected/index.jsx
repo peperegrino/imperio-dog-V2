@@ -1,13 +1,15 @@
 import { useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import BoletoPreview from "../../components/BoletoPreview";
 import ChargeFilters from "../../components/ChargeFilters";
+import ServiceItemCard from "../../components/ServiceItemCard";
 import { useAuth } from "../../contexts/AuthContext";
 import { styles as chargeStyles } from "../Charges/managementStyles";
 import { api } from "../../services/api";
+import { emptyChargeFilters, filterCharges } from "../../utils/chargeFilters";
 import {
   Page,
-import { emptyChargeFilters, filterCharges } from "../../utils/chargeFilters";
   Card,
   Field,
   Action,
@@ -291,6 +293,7 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 const ATTEMPT = "@imperio-dog/charge-attempt";
+const MAX_SERVICE_QUANTITY = 100;
 export function Management({ navigation }) {
   const account = useResource("/account/me");
   const attemptKey = `${ATTEMPT}:${account.data?.id}`;
@@ -304,18 +307,42 @@ export function Management({ navigation }) {
     [dueDate, setDueDate] = useState(today()),
     [reconcileId, setReconcileId] = useState(""),
     [bankSlipId, setBankSlipId] = useState("");
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
   const submit = useSubmit();
-  const total = (services.data || []).reduce(
-    (sum, item) => sum + Number(item.price) * Number(quantities[item.id] || 0),
-    0,
+  const catalog = Array.isArray(services.data) ? services.data : [];
+  const catalogReady = !services.loading && !services.error && Array.isArray(services.data);
+  const selectedServices = catalog.filter((item) => quantities[item.id] > 0).map((item) => ({
+    ...item,
+    unitCents: Math.round(Number(item.price) * 100),
+    quantity: Number(quantities[item.id]),
+  }));
+  const availableServices = catalog.filter((item) => !quantities[item.id]);
+  const customer = customers.data?.find((item) => item.id === customerId);
+  const pet = pets.data?.find((item) => item.id === petId && item.customerId === customerId);
+  const totalCents = selectedServices.reduce((sum, item) => sum + item.unitCents * item.quantity, 0);
+  const missingService = catalogReady && Object.keys(quantities).some((id) =>
+    !catalog.some((item) => String(item.id) === id),
   );
+  const canPreview = Boolean(catalogReady && customer && pet && totalCents > 0 && !missingService);
+  const canIssue = canPreview && account.data;
+
+  function setQuantity(id, quantity) {
+    setQuantities((current) => {
+      const next = { ...current };
+      if (quantity === 0) delete next[id];
+      else next[id] = quantity;
+      return next;
+    });
+  }
+
   return (
     <Page title="Nova cobrança" navigation={navigation} presentation={chargePresentation}>
       <View style={chargeStyles.intro}>
         <Text style={chargeStyles.pageTitle}>Nova cobrança</Text>
         <Text style={chargeStyles.pageSubtitle}>Selecione o tutor, o pet e os serviços.</Text>
       </View>
-      {[customers, pets, services].map((r, i) => (
+      {[customers, pets].map((r, i) => (
         <ResourceState key={i} resource={r} />
       ))}
       <Choose
@@ -333,17 +360,57 @@ export function Management({ navigation }) {
         value={petId}
         onChange={setPetId}
       />
-      <Card>
-        <Text style={s.title}>Serviços</Text>
-        {services.data?.map((item) => (
-          <Field
+      <View style={chargeStyles.section}>
+        <View style={chargeStyles.serviceSectionHeader}>
+          <Text style={chargeStyles.sectionTitle}>SERVIÇOS DA COBRANÇA</Text>
+          {catalogReady && availableServices.length > 0 && (
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: catalogOpen }}
+              onPress={() => setCatalogOpen((open) => !open)} style={chargeStyles.addButton}>
+              <Text style={chargeStyles.addButtonText}>{catalogOpen ? "Fechar catálogo" : "+ Adicionar serviço"}</Text>
+            </Pressable>
+          )}
+        </View>
+        <ResourceState resource={services} />
+        {!services.loading && !services.error && !catalogReady && (
+          <ResourceState resource={{ error: "A API não retornou uma lista de serviços.", reload: services.reload }} />
+        )}
+        {catalogReady && catalog.length === 0 && (
+          <Card>
+            <Message>Nenhum serviço cadastrado. Cadastre um serviço com preço para montar a cobrança.</Message>
+            <Action title="Abrir Serviços e Valores" onPress={() => navigation.navigate("Services", { homeRoute: "Admin" })} />
+          </Card>
+        )}
+        {catalogReady && catalogOpen && availableServices.length > 0 && (
+          <Card>
+            <Text style={s.label}>Escolha no catálogo</Text>
+            {availableServices.map((item) => (
+              <Pressable key={item.id} accessibilityRole="button"
+                accessibilityLabel={`Adicionar ${item.name} por ${money(item.price)}`}
+                onPress={() => { setQuantity(item.id, 1); setCatalogOpen(false); }}
+                style={[s.option, chargeStyles.summaryLine]}>
+                <Text style={chargeStyles.customerName}>{item.name}</Text>
+                <Text style={chargeStyles.summaryValue}>{money(item.price)}</Text>
+              </Pressable>
+            ))}
+          </Card>
+        )}
+        {catalogReady && catalog.length > 0 && selectedServices.length === 0 && (
+          <View style={chargeStyles.emptyServices}>
+            <Text style={chargeStyles.emptyServicesText}>Nenhum serviço adicionado à cobrança.</Text>
+          </View>
+        )}
+        {missingService && <Message>Um serviço da tentativa recuperada saiu do catálogo. Confira a emissão no histórico.</Message>}
+        {selectedServices.map((item) => (
+          <ServiceItemCard
             key={item.id}
-            label={`${item.name} · ${money(item.price)} · quantidade`}
-            keyboardType="number-pad"
-            value={quantities[item.id] || ""}
-            onChangeText={(q) => setQuantities((v) => ({ ...v, [item.id]: q }))}
+            service={item}
+            maxQuantity={MAX_SERVICE_QUANTITY}
+            onChangeQuantity={(quantity) => setQuantity(item.id, quantity)}
+            onRemove={() => setQuantity(item.id, 0)}
           />
         ))}
+      </View>
+      <Card>
         <Field
           label="Data do serviço (AAAA-MM-DD)"
           value={serviceDate}
@@ -354,32 +421,39 @@ export function Management({ navigation }) {
           value={dueDate}
           onChangeText={setDueDate}
         />
-        <Text style={s.title}>Total: {money(total)}</Text>
+        <View style={chargeStyles.totalRow}>
+          <Text style={chargeStyles.totalLabel}>VALOR TOTAL</Text>
+          <Text style={chargeStyles.totalAmount}>{money(totalCents / 100)}</Text>
+        </View>
+        {!canPreview && !missingService && <Message>Selecione cliente, pet e pelo menos um serviço para visualizar a prévia.</Message>}
         <Action
-          title={submit.busy ? "Emitindo…" : "Emitir boleto"}
-          disabled={submit.busy}
+          title="Simular boleto para apresentação"
+          disabled={!canPreview || submit.busy}
+          onPress={() => setPreviewVisible(true)}
+        />
+        <BoletoPreview
+          visible={previewVisible && canPreview}
+          onClose={() => setPreviewVisible(false)}
+          customer={customer?.name}
+          pet={pet?.name}
+          services={selectedServices}
+          dueDate={dueDate}
+          totalCents={totalCents}
+        />
+        <Action
+          title={submit.busy ? "Emitindo…" : "Emitir boleto real pelo C6"}
+          disabled={submit.busy || !canIssue}
           onPress={() =>
             submit.run(async () => {
-              if (Object.values(quantities).some(value => value !== '' && (!Number.isInteger(Number(value)) || Number(value) < 0 || Number(value) > 100))) {
-                throw Error('Informe quantidades inteiras entre 0 e 100; zero remove o serviço.');
-              }
-              const items = (services.data || [])
-                .filter((i) => Number(quantities[i.id]) > 0)
-                .map((i) => ({
-                  serviceId: i.id,
-                  quantity: Number(quantities[i.id]),
-                }));
-              if (!account.data)
-                throw Error("Aguarde o carregamento da conta.");
+              if (!canIssue) throw Error("Selecione cliente, pet e serviços válidos.");
+              const items = selectedServices.map(({ id, quantity }) => ({ serviceId: id, quantity }));
               if (
                 items.some(
                   (item) =>
-                    !Number.isInteger(item.quantity) || item.quantity > 100,
+                    !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_SERVICE_QUANTITY,
                 )
               )
                 throw Error("Informe quantidades inteiras entre 1 e 100.");
-              if (!customerId || !petId || !items.length)
-                throw Error("Selecione cliente, pet e serviços.");
               const payload = {
                 customerId,
                 petId,
@@ -499,9 +573,21 @@ export function ChargeList({ navigation, history = false }) {
     admin ? "/admin/charges" : "/charges/my-charges",
   );
   const [filter, setFilter] = useState("ALL");
+  const [query, setQuery] = useState("");
+  const [advanced, setAdvanced] = useState(emptyChargeFilters);
+  const charges = Array.isArray(resource.data) ? resource.data : [];
+  const visibleCharges = filterCharges(charges, filter, query, advanced);
+
+  function clearFilters() {
+    setQuery("");
+    setFilter("ALL");
+    setAdvanced(emptyChargeFilters);
+  }
+
   return (
     <Page title={history ? "Histórico" : "Cobranças"} navigation={navigation}>
       <ResourceState resource={resource} />
+      <Field label="Buscar cobranças" value={query} onChangeText={setQuery} returnKeyType="search" />
       <Choose
         label="Filtrar"
         items={[
@@ -573,21 +659,9 @@ export function Dashboard({ navigation }) {
           <Card key={status}>
             <Text>
               {label} · {items.length} cobranças
-  const [query, setQuery] = useState("");
-  const [advanced, setAdvanced] = useState(emptyChargeFilters);
-  const charges = Array.isArray(resource.data) ? resource.data : [];
-  const visibleCharges = filterCharges(charges, filter, query, advanced);
-
-  function clearFilters() {
-    setQuery("");
-    setFilter("ALL");
-    setAdvanced(emptyChargeFilters);
-  }
-
             </Text>
             <Text style={s.title}>
               {money(items.reduce((sum, c) => sum + Number(c.amount), 0))}
-      <Field label="Buscar cobranças" value={query} onChangeText={setQuery} returnKeyType="search" />
             </Text>
           </Card>
         );
