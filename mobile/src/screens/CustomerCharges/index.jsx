@@ -3,8 +3,10 @@ import { Pressable, ScrollView, StatusBar, Text, TextInput, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AppNavigation from '../../components/AppNavigation';
+import ChargeFilters from '../../components/ChargeFilters';
 import { date, money, ResourceState, statusLabel, useResource } from '../../components/ConnectedUI';
 import { colors } from '../../theme/colors';
+import { emptyChargeFilters, filterCharges, paymentStatusMatches } from '../../utils/chargeFilters';
 import { styles } from './styles';
 
 const filters = [
@@ -39,25 +41,22 @@ export default function CustomerChargesScreen({ navigation }) {
   const resource = useResource('/admin/charges');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('ALL');
+  const [advanced, setAdvanced] = useState(emptyChargeFilters);
   const charges = useMemo(() => Array.isArray(resource.data) ? resource.data : [], [resource.data]);
-  const visibleCharges = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
-    return charges.filter((charge) => {
-      const matchesStatus = filter === 'ALL' || charge.status === filter;
-      const searchText = [charge.customerName, charge.petName, charge.serviceName, charge.id]
-        .filter((value) => value != null)
-        .join(' ')
-        .toLocaleLowerCase('pt-BR');
-      return matchesStatus && (!normalizedQuery || searchText.includes(normalizedQuery));
-    });
-  }, [charges, filter, query]);
+  const visibleCharges = useMemo(() => filterCharges(charges, filter, query, advanced), [charges, filter, query, advanced]);
 
   const counts = useMemo(() => ({
-    total: charges.length,
-    pending: charges.filter((charge) => ['PENDING', 'PAYMENT_IN_PROCESS'].includes(charge.status)).length,
-    paid: charges.filter((charge) => charge.status === 'PAID').length,
-    overdue: charges.filter((charge) => charge.status === 'OVERDUE').length,
-  }), [charges]);
+    total: visibleCharges.length,
+    pending: visibleCharges.filter((charge) => paymentStatusMatches(charge.status, 'PENDING')).length,
+    paid: visibleCharges.filter((charge) => charge.status === 'PAID').length,
+    overdue: visibleCharges.filter((charge) => charge.status === 'OVERDUE').length,
+  }), [visibleCharges]);
+
+  function clearFilters() {
+    setQuery('');
+    setFilter('ALL');
+    setAdvanced(emptyChargeFilters);
+  }
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.safeArea}>
@@ -107,6 +106,8 @@ export default function CustomerChargesScreen({ navigation }) {
             );
           })}
         </ScrollView>
+        <ChargeFilters value={advanced} onApply={setAdvanced} onClear={clearFilters} allowCustomer
+          active={!!query || filter !== 'ALL' || Object.values(advanced).some(Boolean)} />
 
         <ResourceState resource={resource} />
 

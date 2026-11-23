@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
 import { Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import ChargeFilters from "../../components/ChargeFilters";
 import { useAuth } from "../../contexts/AuthContext";
 import { styles as chargeStyles } from "../Charges/managementStyles";
 import { api } from "../../services/api";
 import {
   Page,
+import { emptyChargeFilters, filterCharges } from "../../utils/chargeFilters";
   Card,
   Field,
   Action,
@@ -509,9 +511,9 @@ export function ChargeList({ navigation, history = false }) {
         value={filter}
         onChange={setFilter}
       />
-      {resource.data
-        ?.filter((c) => filter === "ALL" || c.status === filter)
-        .map((c) => (
+      <ChargeFilters value={advanced} onApply={setAdvanced} onClear={clearFilters} allowCustomer={admin}
+        active={!!query || filter !== "ALL" || Object.values(advanced).some(Boolean)} />
+      {visibleCharges.map((c) => (
           <Card key={c.id}>
             <Text style={s.title}>
               #{c.id} · {c.serviceName}
@@ -540,8 +542,8 @@ export function ChargeList({ navigation, history = false }) {
             />
           </Card>
         ))}
-      {!resource.loading && !resource.error && !resource.data?.length && (
-        <Message>Nenhuma cobrança cadastrada.</Message>
+      {!resource.loading && !resource.error && !visibleCharges.length && (
+        <Message>{charges.length ? "Nenhuma cobrança encontrada com esses filtros." : "Nenhuma cobrança cadastrada."}</Message>
       )}
       {admin && (
         <Action
@@ -571,9 +573,21 @@ export function Dashboard({ navigation }) {
           <Card key={status}>
             <Text>
               {label} · {items.length} cobranças
+  const [query, setQuery] = useState("");
+  const [advanced, setAdvanced] = useState(emptyChargeFilters);
+  const charges = Array.isArray(resource.data) ? resource.data : [];
+  const visibleCharges = filterCharges(charges, filter, query, advanced);
+
+  function clearFilters() {
+    setQuery("");
+    setFilter("ALL");
+    setAdvanced(emptyChargeFilters);
+  }
+
             </Text>
             <Text style={s.title}>
               {money(items.reduce((sum, c) => sum + Number(c.amount), 0))}
+      <Field label="Buscar cobranças" value={query} onChangeText={setQuery} returnKeyType="search" />
             </Text>
           </Card>
         );

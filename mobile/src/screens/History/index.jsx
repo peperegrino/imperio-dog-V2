@@ -3,17 +3,19 @@ import { Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
+import ChargeFilters from '../../components/ChargeFilters';
 import { useAuth } from '../../contexts/AuthContext';
-import { date, money, statusLabel, ResourceState, useResource } from '../../components/ConnectedUI';
+import { date, Field, money, statusLabel, ResourceState, useResource } from '../../components/ConnectedUI';
 import { colors } from '../../theme/colors';
+import { emptyChargeFilters, filterCharges, paymentStatusMatches } from '../../utils/chargeFilters';
 import { styles } from './styles';
 
 const filters = [
-  { key: 'all', label: 'Todas' },
-  { key: 'paid', label: 'Pagas' },
-  { key: 'pending', label: 'Pendentes' },
-  { key: 'overdue', label: 'Vencidas' },
-  { key: 'cancelled', label: 'Canceladas' },
+  { key: 'ALL', label: 'Todas' },
+  { key: 'PAID', label: 'Pagas' },
+  { key: 'PENDING', label: 'Pendentes' },
+  { key: 'OVERDUE', label: 'Vencidas' },
+  { key: 'CANCELED', label: 'Canceladas' },
 ];
 
 const statusDetails = {
@@ -74,19 +76,23 @@ export default function HistoryScreen({ navigation }) {
   const admin = session.role === 'ADMIN';
   const homeRoute = admin ? 'Admin' : 'Home';
   const resource = useResource(admin ? '/admin/charges' : '/charges/my-charges');
-  const [activeFilter, setActiveFilter] = useState('all');
-  const charges = (resource.data || []).map((charge) => ({
+  const [activeFilter, setActiveFilter] = useState('ALL');
+  const [query, setQuery] = useState('');
+  const [advanced, setAdvanced] = useState(emptyChargeFilters);
+  const charges = Array.isArray(resource.data) ? resource.data : [];
+  const visibleCharges = filterCharges(charges, activeFilter, query, advanced).map((charge) => ({
     ...charge,
     status: charge.status === 'CANCELED' ? 'cancelled' : charge.status?.toLowerCase(),
     originalStatus: charge.status,
   }));
-  const visibleCharges = charges.filter((charge) =>
-    activeFilter === 'all' || (activeFilter === 'pending'
-      ? ['pending', 'payment_in_process'].includes(charge.status)
-      : charge.status === activeFilter)
-  );
-  const paidCount = charges.filter((charge) => charge.status === 'paid').length;
-  const pendingCount = charges.filter((charge) => ['pending', 'payment_in_process'].includes(charge.status)).length;
+  const paidCount = visibleCharges.filter((charge) => charge.originalStatus === 'PAID').length;
+  const pendingCount = visibleCharges.filter((charge) => paymentStatusMatches(charge.originalStatus, 'PENDING')).length;
+
+  function clearFilters() {
+    setQuery('');
+    setActiveFilter('ALL');
+    setAdvanced(emptyChargeFilters);
+  }
 
   const goBack = () => {
     if (navigation.canGoBack()) {
@@ -131,7 +137,7 @@ export default function HistoryScreen({ navigation }) {
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{charges.length}</Text>
+            <Text style={styles.summaryValue}>{visibleCharges.length}</Text>
             <Text style={styles.summaryLabel}>Registros</Text>
           </View>
           <View style={styles.summaryDivider} />
@@ -147,6 +153,7 @@ export default function HistoryScreen({ navigation }) {
         </View>
 
         <ResourceState resource={resource} />
+        <Field label="Buscar no histórico" value={query} onChangeText={setQuery} returnKeyType="search" />
 
         <ScrollView
           contentContainerStyle={styles.filterList}
@@ -170,6 +177,8 @@ export default function HistoryScreen({ navigation }) {
             );
           })}
         </ScrollView>
+        <ChargeFilters value={advanced} onApply={setAdvanced} onClear={clearFilters} allowCustomer={admin}
+          active={!!query || activeFilter !== 'ALL' || Object.values(advanced).some(Boolean)} />
 
         {resource.loading || resource.error ? null : visibleCharges.length ? (
           visibleCharges.map((charge) => (
@@ -179,7 +188,7 @@ export default function HistoryScreen({ navigation }) {
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Nenhum registro neste filtro</Text>
             <Text style={styles.emptyDescription}>
-              Não há cobranças com esse status nos dados disponíveis.
+              {charges.length ? 'Altere a busca ou os filtros para ver outros resultados.' : 'Nenhuma cobrança registrada.'}
             </Text>
           </View>
         )}
