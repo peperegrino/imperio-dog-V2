@@ -12,6 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SvgXml } from 'react-native-svg';
 
 import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
+import SideMenu from '../../components/SideMenu';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { styles } from './styles';
@@ -209,6 +210,7 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView edges={['left', 'right', 'top', 'bottom']} style={styles.safeArea}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <View style={styles.header}>
+        <SideMenu navigation={navigation} currentRoute="Home" onLogout={sair} buttonStyle={styles.bellButton} />
         <Text style={styles.headerTitle}>Painel do Tutor</Text>
         <View style={styles.headerActions}>
           <Pressable

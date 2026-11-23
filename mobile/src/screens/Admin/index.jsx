@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import SideMenu from '../../components/SideMenu';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { showAlert, showConfirm } from '../../utils/alert';
@@ -273,15 +274,7 @@ export default function AdminScreen({ navigation }) {
       >
         <View style={styles.pageContent}>
           <View style={styles.header}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Menu indisponível"
-              accessibilityState={{ disabled: true }}
-              disabled
-              style={styles.headerIconButton}
-            >
-              <HomeIcon name="menu" />
-            </Pressable>
+            <SideMenu navigation={navigation} currentRoute="Admin" onLogout={sair} buttonStyle={styles.headerIconButton} />
             <Text style={styles.headerTitle}>Painel da Equipe</Text>
             <Pressable
               accessibilityRole="button"
