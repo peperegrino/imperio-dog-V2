@@ -62,6 +62,10 @@ public class SecurityConfig {
                                 "/webhooks/c6", "/api/webhooks/c6")
                         .permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(
+    "/account/pets", "/account/pets/**",
+    "/api/account/pets", "/api/account/pets/**"
+).hasRole("CLIENT")
                         .requestMatchers(HttpMethod.GET,
                                 "/customers/me", "/api/customers/me",
                                 "/charges/my-charges", "/api/charges/my-charges")

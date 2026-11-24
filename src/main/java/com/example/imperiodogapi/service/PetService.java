@@ -68,9 +68,54 @@ public class PetService {
     }
 
     @Transactional
-    public void delete(Long id) {
-        petRepository.delete(getPet(id));
+public void delete(Long id) {
+    Pet pet = petRepository.findLockedById(id)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Pet not found"));
+
+    if (chargeRepository.existsByPetId(id)) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Pet has charge history");
     }
+
+    petRepository.delete(pet);
+}
+
+private void validateOwnership(Long id, Long customerId) {
+    Pet pet = petRepository.findLockedById(id)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Pet not found"));
+
+    if (!pet.getCustomer().getId().equals(customerId)) {
+        throw new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Pet not found");
+    }
+}
+
+@Transactional
+public PetResponseDTO updateOwnPet(
+        Long id, Long customerId, PetRequestDTO request) {
+
+    validateOwnership(id, customerId);
+
+    return update(id, new PetRequestDTO(
+            request.name(),
+            request.species(),
+            request.breed(),
+            customerId,
+            request.sex(),
+            request.birthDate(),
+            request.weight(),
+            request.notes()
+    ));
+}
+
+@Transactional
+public void deleteOwnPet(Long id, Long customerId) {
+    validateOwnership(id, customerId);
+    delete(id);
+}
 
     private Pet getPet(Long id) {
         return petRepository.findById(id)

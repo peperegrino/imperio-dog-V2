@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { api } from '../../services/api';
 import { Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +13,30 @@ export default function PetsScreen({ navigation }) {
   const { session } = useAuth();
   const admin = session.role === 'ADMIN';
   const homeRoute = admin ? 'Admin' : 'Home';
+  const [selectedPet, setSelectedPet] = useState(null);
+const [deleting, setDeleting] = useState(false);
+const [deleteError, setDeleteError] = useState('');
+
+const removePet = async () => {
+  if (!selectedPet || deleting) return;
+
+  setDeleting(true);
+  setDeleteError('');
+
+  try {
+    await api.delete(`/account/pets/${selectedPet.id}`);
+    setSelectedPet(null);
+    navigation.replace('Pets');
+  } catch (error) {
+    setDeleteError(
+      error.status === 409
+        ? 'Este pet possui histórico de cobranças e não pode ser removido.'
+        : error.message
+    );
+  } finally {
+    setDeleting(false);
+  }
+};
   const resource = useResource(admin ? '/admin/pets' : '/account/pets');
 
   const goBack = () => {
@@ -62,6 +88,72 @@ export default function PetsScreen({ navigation }) {
             {pet.weight != null && <Text>{pet.weight} kg</Text>}
             <Text>Nascimento: {date(pet.birthDate)}</Text>
             {pet.notes && <Text>{pet.notes}</Text>}
+            {!admin && (
+  <Pressable
+    accessibilityRole="button"
+    onPress={() => navigation.navigate('NewPet', { homeRoute, pet })}
+    style={[styles.addButton, { marginTop: 12 }]}
+  >
+    <Text style={styles.addButtonText}>
+      Editar pet
+    </Text>
+  </Pressable>
+)}
+{!admin && (
+  <Pressable
+    accessibilityRole="button"
+    onPress={() => {
+      setDeleteError('');
+      setSelectedPet(pet);
+    }}
+    style={{
+      padding: 12,
+      marginTop: 8,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: '#722F37',
+      borderRadius: 10,
+    }}
+  >
+    <Text style={{ color: '#722F37', fontWeight: '600' }}>
+      Remover pet
+    </Text>
+  </Pressable>
+)}
+
+{selectedPet?.id === pet.id && (
+  <View style={{ padding: 12, marginTop: 12 }}>
+    <Text style={{ fontWeight: '600' }}>
+      Deseja realmente remover {pet.name}?
+    </Text>
+
+    <Text>Esta ação não poderá ser desfeita.</Text>
+
+    {deleteError ? (
+      <Text style={{ color: '#B91C1C', marginTop: 8 }}>
+        {deleteError}
+      </Text>
+    ) : null}
+
+    <Pressable
+      disabled={deleting}
+      onPress={removePet}
+      style={[styles.addButton, { marginTop: 12 }]}
+    >
+      <Text style={styles.addButtonText}>
+        {deleting ? 'Removendo...' : 'Confirmar exclusão'}
+      </Text>
+    </Pressable>
+
+    <Pressable
+      disabled={deleting}
+      onPress={() => setSelectedPet(null)}
+      style={{ padding: 12, alignItems: 'center' }}
+    >
+      <Text>Cancelar</Text>
+    </Pressable>
+  </View>
+)}
           </Card>
         ))}
         <View style={styles.emptyCard}>
