@@ -45,4 +45,23 @@ public class AccountController {
     public PetResponseDTO addPet(@AuthenticationPrincipal UserDetails principal, @Valid @RequestBody PetRequestDTO request) {
         return petService.create(new PetRequestDTO(request.name(),request.species(),request.breed(),customerId(principal),request.sex(),request.birthDate(),request.weight(),request.notes()));
     }
+
+    @PutMapping("/pets/{id}")
+public PetResponseDTO updatePet(
+        @AuthenticationPrincipal UserDetails principal,
+        @PathVariable Long id,
+        @Valid @RequestBody PetRequestDTO request) {
+
+    return petService.updateOwnPet(
+            id, customerId(principal), request);
+}
+
+@DeleteMapping("/pets/{id}")
+@ResponseStatus(HttpStatus.NO_CONTENT)
+public void deletePet(
+        @AuthenticationPrincipal UserDetails principal,
+        @PathVariable Long id) {
+
+    petService.deleteOwnPet(id, customerId(principal));
+}
 }

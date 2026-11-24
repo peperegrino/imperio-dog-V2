@@ -126,13 +126,27 @@ function ChoiceField({ label, options, value, onChange, error }) {
   );
 }
 
-export default function NewPetScreen({ navigation }) {
+export default function NewPetScreen({ navigation, route }) {
+  const pet = route?.params?.pet;
+  const editing = Boolean(pet?.id);
   const { session } = useAuth();
   const admin = session.role === 'ADMIN';
   const customers = useResource(admin ? '/admin/customers' : '/account/me');
   const [customerId, setCustomerId] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [values, setValues] = useState(initialValues);
+  const [values, setValues] = useState(
+  pet ? {
+    name: pet.name || '',
+    species: pet.species || '',
+    breed: pet.breed || '',
+    sex: pet.sex || '',
+    birthDate: pet.birthDate
+      ? pet.birthDate.split('-').reverse().join('/')
+      : '',
+    weight: String(pet.weight ?? ''),
+    notes: pet.notes || '',
+  } : initialValues
+);
   const [errors, setErrors] = useState({});
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState('');
@@ -163,12 +177,18 @@ export default function NewPetScreen({ navigation }) {
     }
     setSaving(true);
     try {
-      await api.post(admin ? '/admin/pets' : '/account/pets', {
-        ...values,
-        customerId,
-        birthDate: values.birthDate.trim().split('/').reverse().join('-'),
-        weight: Number(values.weight.replace(',', '.')),
-      });
+      const payload = {
+  ...values,
+  customerId,
+  birthDate: values.birthDate.trim().split('/').reverse().join('-'),
+  weight: Number(values.weight.replace(',', '.')),
+};
+
+if (editing && !admin) {
+  await api.put(`/account/pets/${pet.id}`, payload);
+} else {
+  await api.post(admin ? '/admin/pets' : '/account/pets', payload);
+}
       navigation.replace('Pets');
     } catch (error) {
       setSubmissionMessage(error.message);
@@ -193,7 +213,9 @@ export default function NewPetScreen({ navigation }) {
           >
             <Text style={styles.backMark}>‹</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>Novo Pet</Text>
+          <Text style={styles.headerTitle}>
+  {editing ? 'Editar Pet' : 'Novo Pet'}
+</Text>
           <View style={styles.headerSide} />
         </View>
 
@@ -204,7 +226,9 @@ export default function NewPetScreen({ navigation }) {
         >
           <View style={styles.intro}>
             <Text style={styles.eyebrow}>IMPÉRIO DOG RESORT</Text>
-            <Text style={styles.title}>Cadastrar Pet</Text>
+            <Text style={styles.title}>
+  {editing ? 'Editar informações' : 'Cadastrar Pet'}
+</Text>
             <Text style={styles.description}>
               Preencha as informações para preparar o cadastro do novo companheiro.
             </Text>
