@@ -56,6 +56,9 @@ class ServiceLayerTests {
     private PetRepository petRepository;
 
     @Mock
+private com.example.imperiodogapi.repository.ChargeRepository chargeRepository;
+
+    @Mock
     private ServiceRepository serviceRepository;
 
     @Mock
@@ -179,4 +182,58 @@ class ServiceLayerTests {
         assertEquals("Banho e tosa", response.name());
         assertEquals(new BigDecimal("89.90"), response.price());
     }
+
+    @Test
+void tutorCannotUpdateAnotherTutorsPet() {
+    Customer owner = Customer.builder().id(7L).build();
+    Pet pet = Pet.builder().id(15L).customer(owner).build();
+
+    when(petRepository.findLockedById(15L))
+            .thenReturn(Optional.of(pet));
+
+    PetRequestDTO request =
+            new PetRequestDTO("Rex", "Cachorro", "Vira-lata", 8L);
+
+    ResponseStatusException exception = assertThrows(
+            ResponseStatusException.class,
+            () -> petService.updateOwnPet(15L, 8L, request));
+
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    verify(petRepository, never()).save(any(Pet.class));
+}
+
+@Test
+void tutorCannotDeleteAnotherTutorsPet() {
+    Customer owner = Customer.builder().id(7L).build();
+    Pet pet = Pet.builder().id(15L).customer(owner).build();
+
+    when(petRepository.findLockedById(15L))
+            .thenReturn(Optional.of(pet));
+
+    ResponseStatusException exception = assertThrows(
+            ResponseStatusException.class,
+            () -> petService.deleteOwnPet(15L, 8L));
+
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    verify(petRepository, never()).delete(any(Pet.class));
+}
+
+@Test
+void tutorCannotDeletePetWithChargeHistory() {
+    Customer owner = Customer.builder().id(7L).build();
+    Pet pet = Pet.builder().id(15L).customer(owner).build();
+
+    when(petRepository.findLockedById(15L))
+            .thenReturn(Optional.of(pet));
+
+    when(chargeRepository.existsByPetId(15L)).thenReturn(true);
+
+    ResponseStatusException exception = assertThrows(
+            ResponseStatusException.class,
+            () -> petService.deleteOwnPet(15L, 7L));
+
+    assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+    verify(petRepository, never()).delete(any(Pet.class));
+}
+
 }
