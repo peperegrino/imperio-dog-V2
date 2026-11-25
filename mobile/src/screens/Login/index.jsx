@@ -43,6 +43,15 @@ export default function LoginScreen({ navigation, route }) {
     }
 
     setLoginError('');
+    if (!email.trim() || !senha) {
+      setLoginError('Informe seu e-mail e sua senha.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setLoginError('Digite um endereço de e-mail válido.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await signIn(email.trim(), senha, lembrar, perfilAtivo === 'equipe' ? 'ADMIN' : 'CLIENT');

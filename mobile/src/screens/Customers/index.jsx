@@ -112,9 +112,12 @@ function isValidCpf(value) {
 function validate(values) {
   const errors = {};
   if (!values.tutorName.trim()) errors.tutorName = 'Informe o nome completo.';
+  else if (values.tutorName.trim().length > 40) errors.tutorName = 'Use no máximo 40 caracteres.';
   if (!values.email.trim()) errors.email = 'Informe o e-mail.';
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(values.email.trim())) {
     errors.email = 'Confira o formato do e-mail.';
+  } else if (values.email.trim().length > 200) {
+    errors.email = 'Use no máximo 200 caracteres no e-mail.';
   }
 
   const phoneDigits = values.phone.replace(/\D/g, '');
@@ -125,6 +128,18 @@ function validate(values) {
 
   if (!values.cpf.replace(/\D/g, '')) errors.cpf = 'Informe o CPF do titular.';
   else if (!isValidCpf(values.cpf)) errors.cpf = 'Informe um CPF válido.';
+  if (values.password.length < 12) errors.password = 'A senha inicial deve ter pelo menos 12 caracteres.';
+  else if (values.password.length > 72) errors.password = 'Use no máximo 72 caracteres na senha.';
+  const zipCode = values.zipCode.replace(/\D/g, '');
+  if (zipCode.length !== 8) errors.zipCode = 'Informe um CEP com 8 dígitos.';
+  if (!values.streetName.trim()) errors.streetName = 'Informe a rua.';
+  else if (values.streetName.trim().length > 33) errors.streetName = 'Use no máximo 33 caracteres.';
+  if (!/^\d{1,7}$/.test(values.streetNumber.trim())) errors.streetNumber = 'Informe um número de 1 a 7 dígitos.';
+  if (!values.neighborhood.trim()) errors.neighborhood = 'Informe o bairro.';
+  else if (values.neighborhood.trim().length > 100) errors.neighborhood = 'Use no máximo 100 caracteres.';
+  if (!values.city.trim()) errors.city = 'Informe a cidade.';
+  else if (values.city.trim().length > 40) errors.city = 'Use no máximo 40 caracteres.';
+  if (!/^[A-Za-z]{2}$/.test(values.federalUnit.trim())) errors.federalUnit = 'Informe a UF com duas letras.';
   if (!values.petName.trim()) errors.petName = 'Informe o nome do pet.';
   if (!values.breed.trim()) errors.breed = 'Informe a raça.';
   return errors;
@@ -338,7 +353,7 @@ export default function CustomersScreen({ navigation, route }) {
             onPress={handleSubmit}
             style={({ pressed }) => [styles.submitButton, pressed && styles.submitPressed]}
           >
-            <Text style={styles.submitLabel}>Cadastrar Cliente</Text>
+            <Text style={styles.submitLabel}>{saving ? 'Salvando cadastro...' : 'Cadastrar Cliente'}</Text>
             <ScreenIcon name="send" size={17} color={colors.white} />
           </Pressable>
           {submitNotice ? (

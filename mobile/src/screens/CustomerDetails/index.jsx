@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { date, money, statusLabel, Action, Card, Message, Page, ResourceState, useResource } from '../../components/ConnectedUI';
+import { Action, Card, date, Field, Message, money, Page, ResourceState, statusLabel, useResource } from '../../components/ConnectedUI';
+import { api } from '../../services/api';
 import { styles } from './styles';
 
 export default function CustomerDetailsScreen({ navigation, route }) {
@@ -7,6 +9,11 @@ export default function CustomerDetailsScreen({ navigation, route }) {
   const customers = useResource('/admin/customers');
   const pets = useResource('/admin/pets');
   const charges = useResource('/admin/charges');
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ name: '', phone: '' });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveMessage, setSaveMessage] = useState('');
   const customer = Array.isArray(customers.data)
     ? customers.data.find((item) => String(item.id) === String(customerId))
     : null;
@@ -15,6 +22,43 @@ export default function CustomerDetailsScreen({ navigation, route }) {
   const customerCharges = (Array.isArray(charges.data) ? charges.data : [])
     .filter((charge) => String(charge.customerId) === String(customerId));
   const loading = customers.loading || pets.loading || charges.loading;
+
+  function startEditing() {
+    if (!customer) return;
+    setDraft({ name: customer.name || '', phone: customer.phone || '' });
+    setSaveError('');
+    setSaveMessage('');
+    setEditing(true);
+  }
+
+  async function saveCustomer() {
+    if (saving) return;
+    if (!draft.name.trim()) {
+      setSaveError('Informe o nome do cliente.');
+      return;
+    }
+    if (draft.name.trim().length > 40 || draft.phone.trim().length > 30) {
+      setSaveError('Confira os limites de caracteres do nome e do telefone.');
+      return;
+    }
+
+    setSaving(true);
+    setSaveError('');
+    setSaveMessage('');
+    try {
+      await api.put(`/admin/customers/${customerId}`, {
+        name: draft.name.trim(),
+        phone: draft.phone.trim(),
+      });
+      setEditing(false);
+      setSaveMessage('Cadastro atualizado.');
+      await customers.reload();
+    } catch (error) {
+      setSaveError(error.message || 'Não foi possível atualizar o cadastro.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Page title="Detalhes do cliente" navigation={navigation}>
@@ -35,10 +79,49 @@ export default function CustomerDetailsScreen({ navigation, route }) {
       {customer ? (
         <Card>
           <Text style={styles.sectionTitle}>Dados pessoais</Text>
-          <Detail label="Nome" value={customer.name} />
-          <Detail label="E-mail" value={customer.email} />
-          <Detail label="Telefone" value={customer.phone || 'Não informado'} />
-          <Detail label="CPF" value={customer.cpf || 'Não informado'} last />
+          {editing ? (
+            <>
+              <Field
+                label="Nome"
+                value={draft.name}
+                onChangeText={(name) => setDraft((current) => ({ ...current, name }))}
+                maxLength={40}
+              />
+              <Field
+                label="Telefone"
+                value={draft.phone}
+                onChangeText={(phone) => setDraft((current) => ({ ...current, phone }))}
+                keyboardType="phone-pad"
+                maxLength={30}
+              />
+              <Detail label="E-mail de acesso" value={customer.email} />
+              <Detail label="CPF" value={customer.cpf || 'Não informado'} last />
+              <Message>O e-mail de acesso e o CPF não podem ser alterados por este formulário.</Message>
+              {saveError ? <Message>{saveError}</Message> : null}
+              <Action
+                title={saving ? 'Salvando...' : 'Salvar alterações'}
+                onPress={saveCustomer}
+                disabled={saving}
+              />
+              <Action
+                title="Cancelar edição"
+                onPress={() => {
+                  setEditing(false);
+                  setSaveError('');
+                }}
+                disabled={saving}
+              />
+            </>
+          ) : (
+            <>
+              <Detail label="Nome" value={customer.name} />
+              <Detail label="E-mail" value={customer.email} />
+              <Detail label="Telefone" value={customer.phone || 'Não informado'} />
+              <Detail label="CPF" value={customer.cpf || 'Não informado'} last />
+              {saveMessage ? <Message>{saveMessage}</Message> : null}
+              <Action title="Editar cadastro" onPress={startEditing} />
+            </>
+          )}
         </Card>
       ) : null}
 

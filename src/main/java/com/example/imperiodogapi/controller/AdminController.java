@@ -4,6 +4,7 @@ import com.example.imperiodogapi.dto.ChargeRequestDTO;
 import com.example.imperiodogapi.dto.ChargeResponseDTO;
 import com.example.imperiodogapi.dto.CustomerRequestDTO;
 import com.example.imperiodogapi.dto.CustomerResponseDTO;
+import com.example.imperiodogapi.dto.CustomerUpdateRequestDTO;
 import com.example.imperiodogapi.dto.PetRequestDTO;
 import com.example.imperiodogapi.dto.PetResponseDTO;
 import com.example.imperiodogapi.dto.ServiceRequestDTO;
@@ -55,6 +56,12 @@ public class AdminController {
     @GetMapping("/customers")
     public List<CustomerResponseDTO> listCustomers() {
         return customerService.findAll();
+    }
+
+    @PutMapping("/customers/{id}")
+    public CustomerResponseDTO updateCustomer(@PathVariable @Positive Long id,
+                                              @Valid @RequestBody CustomerUpdateRequestDTO request) {
+        return customerService.updateCustomer(id, request);
     }
 
     public record CustomerWithPet(@jakarta.validation.constraints.NotNull @Valid CustomerRequestDTO customer,

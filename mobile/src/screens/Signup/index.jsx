@@ -22,6 +22,22 @@ const addressFields = [
   ['city', 'Cidade'], ['federalUnit', 'UF'],
 ];
 
+function isValidCpf(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!/^\d{11}$/.test(digits) || /^([0-9])\1{10}$/.test(digits)) return false;
+
+  const digitAt = (length) => {
+    const sum = digits
+      .slice(0, length)
+      .split('')
+      .reduce((total, digit, index) => total + Number(digit) * (length + 1 - index), 0);
+    const remainder = (sum * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+
+  return digitAt(9) === Number(digits[9]) && digitAt(10) === Number(digits[10]);
+}
+
 export default function SignupScreen({ navigation }) {
   const [address, setAddress] = useState({});
   const [name, setName] = useState('');
@@ -64,8 +80,48 @@ export default function SignupScreen({ navigation }) {
       return;
     }
 
+    if (normalizedEmail.length > 200) {
+      showAlert('E-mail inválido', 'Use no máximo 200 caracteres.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       showAlert('Senhas diferentes', 'Confira se as duas senhas foram digitadas corretamente.');
+      return;
+    }
+
+    if (password.length < 12 || password.length > 72) {
+      showAlert('Senha inválida', 'A senha deve ter entre 12 e 72 caracteres.');
+      return;
+    }
+
+    if (name.trim().length > 40) {
+      showAlert('Nome inválido', 'Use no máximo 40 caracteres.');
+      return;
+    }
+
+    const phoneDigits = String(address.phone || '').replace(/\D/g, '');
+    if (![10, 11].includes(phoneDigits.length)) {
+      showAlert('Telefone inválido', 'Informe um telefone com DDD.');
+      return;
+    }
+
+    if (!isValidCpf(address.cpf)) {
+      showAlert('CPF inválido', 'Informe um CPF válido.');
+      return;
+    }
+
+    if (!/^\d{8}$/.test(String(address.zipCode || '').replace(/\D/g, ''))) {
+      showAlert('CEP inválido', 'Informe um CEP com 8 dígitos.');
+      return;
+    }
+
+    if (!address.streetName?.trim() || address.streetName.trim().length > 33
+      || !/^\d{1,7}$/.test(String(address.streetNumber || '').trim())
+      || !address.neighborhood?.trim() || address.neighborhood.trim().length > 100
+      || !address.city?.trim() || address.city.trim().length > 40
+      || !/^[A-Za-z]{2}$/.test(String(address.federalUnit || '').trim())) {
+      showAlert('Endereço incompleto', 'Confira rua, número, bairro, cidade e UF.');
       return;
     }
 
