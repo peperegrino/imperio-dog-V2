@@ -104,10 +104,13 @@ function FormField({
   );
 }
 
-function ChoiceField({ label, options, value, onChange, error }) {
+function ChoiceField({ label, options, value, onChange, error, required = true }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}<Text style={styles.required}> *</Text></Text>
+      <Text style={styles.fieldLabel}>
+        {label}
+        {required ? <Text style={styles.required}> *</Text> : null}
+      </Text>
       <View style={styles.choiceRow}>
         {options.map((option) => {
           const selected = value === option;
@@ -243,7 +246,9 @@ if (editing && !admin) {
   {editing ? 'Editar informações' : 'Cadastrar Pet'}
 </Text>
             <Text style={styles.description}>
-              Preencha as informações para preparar o cadastro do novo companheiro.
+              {editing
+                ? 'Atualize os dados do seu pet. Altere somente as informações desejadas.'
+                : 'Preencha as informações para preparar o cadastro do novo companheiro.'}
             </Text>
           </View>
 
@@ -267,6 +272,7 @@ if (editing && !admin) {
               label="Espécie"
               onChange={(value) => updateField('species', value)}
               options={['Cachorro', 'Gato']}
+              required={!editing}
               value={values.species}
             />
             <FormField
@@ -274,12 +280,14 @@ if (editing && !admin) {
               onChangeText={(value) => updateField('breed', value)}
               value={values.breed}
               error={errors.breed}
+              required={!editing}
             />
             <ChoiceField
               error={errors.sex}
               label="Sexo"
               onChange={(value) => updateField('sex', value)}
               options={['Macho', 'Fêmea']}
+              required={!editing}
               value={values.sex}
             />
             {fields.slice(2, 4).map((field) => (
@@ -289,6 +297,7 @@ if (editing && !admin) {
                 onChangeText={(value) => updateField(field.key, value)}
                 value={values[field.key]}
                 error={errors[field.key]}
+                required={!editing}
               />
             ))}
 
@@ -324,11 +333,13 @@ if (editing && !admin) {
             onPress={submit}
             style={({ pressed }) => [styles.submitButton, pressed && styles.pressed]}
           >
-            <Text style={styles.submitButtonText}>{saving ? 'Salvando…' : 'Cadastrar Pet'}</Text>
+            <Text style={styles.submitButtonText}>
+              {saving ? 'Salvando…' : editing ? 'Salvar alterações' : 'Cadastrar Pet'}
+            </Text>
           </Pressable>
           {submissionMessage ? (
             <Text accessibilityLiveRegion="polite" style={styles.submissionMessage}>
-              Cadastro não enviado. {submissionMessage}
+              {editing ? 'Alteração não salva.' : 'Cadastro não enviado.'} {submissionMessage}
             </Text>
           ) : null}
           <Pressable
