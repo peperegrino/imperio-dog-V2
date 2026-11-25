@@ -39,7 +39,7 @@ function ChargeHistoryCard({ charge, openCharge }) {
           <Text style={styles.receiptMark}>R$</Text>
         </View>
         <View style={styles.cardHeading}>
-          <Text style={styles.chargeTitle}>{charge.serviceName}</Text>
+          <Text style={styles.chargeTitle}>{charge.issuanceState === 'SIMULATED' && 'Simulação · '}{charge.serviceName}</Text>
           <Text style={styles.chargeId}>Cobrança #{charge.id}</Text>
         </View>
         <View style={[styles.statusPill, styles[`statusPill_${status.tone}`]]}>
@@ -86,7 +86,9 @@ export default function HistoryScreen({ navigation }) {
     originalStatus: charge.status,
   }));
   const paidCount = visibleCharges.filter((charge) => charge.originalStatus === 'PAID').length;
-  const pendingCount = visibleCharges.filter((charge) => paymentStatusMatches(charge.originalStatus, 'PENDING')).length;
+  const pendingCount = visibleCharges.filter((charge) =>
+    charge.issuanceState !== 'SIMULATED' && paymentStatusMatches(charge.originalStatus, 'PENDING'),
+  ).length;
 
   function clearFilters() {
     setQuery('');

@@ -4,7 +4,7 @@ import { Action, date, money } from '../ConnectedUI';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
-export default function BoletoPreview({ visible, onClose, customer, pet, services, dueDate, totalCents }) {
+export default function BoletoPreview({ visible, onClose, customer, pet, services, dueDate, totalCents, registered }) {
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -28,8 +28,10 @@ export default function BoletoPreview({ visible, onClose, customer, pet, service
               ))}
               <Detail label="Valor demonstrativo" value={money(totalCents / 100)} />
             </View>
-            <Text style={styles.copy}>Prévia da apresentação. Nenhuma cobrança foi emitida.</Text>
-            <Action title="Fechar prévia" onPress={onClose} />
+            <Text style={styles.copy}>{registered
+              ? 'A simulação foi registrada na conta do tutor.'
+              : 'Prévia local. O servidor ainda não disponibiliza o envio da simulação ao tutor.'}</Text>
+            <Action title="Fechar" onPress={onClose} />
           </ScrollView>
         </View>
       </View>

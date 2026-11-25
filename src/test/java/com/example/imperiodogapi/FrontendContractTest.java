@@ -68,6 +68,33 @@ mvc.perform(delete("/api/account/pets/"+petId)
   long secondId=mapper.readTree(secondService.getResponse().getContentAsString()).path("id").asLong();
   var today=java.time.LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"));
   String chargeBody="{\"customerId\":"+customerId+",\"petId\":"+petId+",\"items\":[{\"serviceId\":"+serviceId+",\"quantity\":3},{\"serviceId\":"+secondId+",\"quantity\":2}],\"serviceDate\":\""+today+"\",\"dueDate\":\""+today.plusDays(7)+"\"}";
+  String simulatePath = "/api/admin/charges/simulate";
+  String simulationKey = "frontend-simulation-0001";
+  mvc.perform(post(simulatePath).header("Authorization", "Bearer " + token)
+      .header("Idempotency-Key", simulationKey).contentType(MediaType.APPLICATION_JSON).content(chargeBody))
+      .andExpect(status().isForbidden());
+  var simulated = mvc.perform(post(simulatePath).with(user("admin").roles("ADMIN"))
+      .header("Idempotency-Key", simulationKey).contentType(MediaType.APPLICATION_JSON).content(chargeBody))
+      .andExpect(status().isCreated()).andExpect(jsonPath("$.issuanceState").value("SIMULATED"))
+      .andExpect(jsonPath("$.amount").value(156.5)).andExpect(jsonPath("$.ticketUrl").doesNotExist()).andReturn();
+  long simulatedId = mapper.readTree(simulated.getResponse().getContentAsString()).path("id").asLong();
+  mvc.perform(post(simulatePath).with(user("admin").roles("ADMIN"))
+      .header("Idempotency-Key", simulationKey).contentType(MediaType.APPLICATION_JSON).content(chargeBody))
+      .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(simulatedId));
+  mvc.perform(post("/api/admin/charges").with(user("admin").roles("ADMIN"))
+      .header("Idempotency-Key", simulationKey).contentType(MediaType.APPLICATION_JSON).content(chargeBody))
+      .andExpect(status().isConflict());
+  mvc.perform(get("/api/charges/my-charges").header("Authorization", "Bearer " + token))
+      .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(simulatedId));
+  mvc.perform(get("/api/charges/my-charges").with(user("second@example.com").roles("CLIENT")))
+      .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+  mvc.perform(get("/api/charges/" + simulatedId + "/boleto").header("Authorization", "Bearer " + token))
+      .andExpect(status().isNotFound());
+  mvc.perform(post("/api/admin/charges/" + simulatedId + "/reconcile")
+      .with(user("admin").roles("ADMIN")).param("bankSlipId", "simulated"))
+      .andExpect(status().isConflict());
+  verifyNoInteractions(bank);
+
   when(bank.createBoleto(any())).thenReturn(new C6BankService.Boleto("front-bank-1","CREATED","123","456",null));
   var charge=mvc.perform(post("/api/admin/charges").with(user("admin").roles("ADMIN")).header("Idempotency-Key","frontend-contract-0001").contentType(MediaType.APPLICATION_JSON).content(chargeBody))
     .andExpect(status().isCreated()).andExpect(jsonPath("$.amount").value(156.5)).andExpect(jsonPath("$.items[0].quantity").value(3)).andExpect(jsonPath("$.items[1].quantity").value(2)).andReturn();

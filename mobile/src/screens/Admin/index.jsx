@@ -52,7 +52,8 @@ function getCustomerName(charge) {
 }
 
 function getServiceName(charge) {
-  return charge?.serviceName || 'Cobrança';
+  const name = charge?.serviceName || 'Cobrança';
+  return charge?.issuanceState === 'SIMULATED' ? `Simulação · ${name}` : name;
 }
 
 function getDueDate(charge) {
@@ -80,7 +81,7 @@ function isUpcomingCharge(charge, now) {
 }
 
 function calculateSummary(charges, nowMs = 0) {
-  const items = Array.isArray(charges) ? charges : [];
+  const items = Array.isArray(charges) ? charges.filter((charge) => charge.issuanceState !== 'SIMULATED') : [];
   const now = nowMs || Date.now();
 
   const received = items

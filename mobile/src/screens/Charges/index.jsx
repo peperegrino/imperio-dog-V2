@@ -97,7 +97,7 @@ function TutorChargesScreen({ navigation, route }) {
   const invoices = (Array.isArray(resource.data) ? resource.data : []).map((charge) => ({
     id: charge.id,
     dueDate: date(charge.dueDate),
-    title: charge.serviceName || `Cobrança #${charge.id}`,
+    title: charge.issuanceState === 'SIMULATED' ? `Simulação · ${charge.serviceName}` : charge.serviceName || `Cobrança #${charge.id}`,
     status: chargeStatuses[charge.status] || 'desconhecido',
     amount: money(charge.amount),
   }));

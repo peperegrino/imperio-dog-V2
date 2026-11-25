@@ -127,6 +127,12 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(chargeService.createCharge(request, idempotencyKey));
     }
 
+    @PostMapping("/charges/simulate")
+    public ResponseEntity<ChargeResponseDTO> simulateCharge(@Valid @RequestBody ChargeRequestDTO request,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(chargeService.simulateCharge(request, idempotencyKey));
+    }
+
     @PostMapping("/charges/{id}/reconcile")
     public ChargeResponseDTO reconcileCharge(@PathVariable @Positive Long id,
             @RequestParam String bankSlipId) {

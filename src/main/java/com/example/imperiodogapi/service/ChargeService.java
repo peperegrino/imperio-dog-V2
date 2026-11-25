@@ -22,6 +22,7 @@ import java.util.List;
 
 @Service
 public class ChargeService {
+    private static final String SIMULATED = "SIMULATED";
 
     private final ChargeRepository chargeRepository;
     private final CustomerRepository customerRepository;
@@ -43,21 +44,33 @@ public class ChargeService {
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public ChargeResponseDTO createCharge(ChargeRequestDTO request, String idempotencyKey) {
+        return createCharge(request, idempotencyKey, false);
+    }
+
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    public ChargeResponseDTO simulateCharge(ChargeRequestDTO request, String idempotencyKey) {
+        return createCharge(request, idempotencyKey, true);
+    }
+
+    private ChargeResponseDTO createCharge(ChargeRequestDTO request, String idempotencyKey, boolean simulated) {
         if (idempotencyKey == null || !idempotencyKey.matches("[A-Za-z0-9_-]{16,128}")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Idempotency-Key must contain 16 to 128 letters, digits, underscores or hyphens");
         }
         var existing = transactions.execute(tx -> chargeRepository.findByIdempotencyKey(idempotencyKey)
-                .map(charge -> replay(charge, request)).orElse(null));
+                .map(charge -> replay(charge, request, simulated)).orElse(null));
         if (existing != null) return existing;
 
         Charge reserved;
         try {
-            reserved = transactions.execute(tx -> reserve(request, idempotencyKey));
+            if (simulated) {
+                return transactions.execute(tx -> toResponse(reserve(request, idempotencyKey, true)));
+            }
+            reserved = transactions.execute(tx -> reserve(request, idempotencyKey, false));
         } catch (DataIntegrityViolationException exception) {
             // A concurrent request may have committed this same key first.
             return transactions.execute(tx -> chargeRepository.findByIdempotencyKey(idempotencyKey)
-                    .map(charge -> replay(charge, request)).orElseThrow(() -> exception));
+                    .map(charge -> replay(charge, request, simulated)).orElseThrow(() -> exception));
         }
         try {
             // No database transaction is held during the external request.
@@ -79,15 +92,16 @@ public class ChargeService {
         }
     }
 
-    private ChargeResponseDTO replay(Charge charge, ChargeRequestDTO request) {
-        if (!charge.getCustomer().getId().equals(request.customerId())
+    private ChargeResponseDTO replay(Charge charge, ChargeRequestDTO request, boolean simulated) {
+        if (simulated != SIMULATED.equals(charge.getIssuanceState())
+                || !charge.getCustomer().getId().equals(request.customerId())
                 || !charge.getPet().getId().equals(request.petId())
                 || !sameItems(charge, request)
                 || !charge.getServiceDate().equals(request.serviceDate())
                 || !charge.getDueDate().equals(request.dueDate())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Idempotency-Key already used for a different request");
         }
-        if (charge.getC6BankSlipId() == null) {
+        if (!simulated && charge.getC6BankSlipId() == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Issuance in progress or requires reconciliation; charge=" + charge.getId()
                             + ", externalReference=" + charge.getC6ExternalReferenceId());
@@ -95,7 +109,7 @@ public class ChargeService {
         return toResponse(charge);
     }
 
-    private Charge reserve(ChargeRequestDTO request, String idempotencyKey) {
+    private Charge reserve(ChargeRequestDTO request, String idempotencyKey, boolean simulated) {
         if (!request.isSelectionValid()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Select services");
         LocalDate today = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
         if (request.serviceDate().isAfter(today)) {
@@ -137,14 +151,14 @@ public class ChargeService {
                 .dueDate(request.dueDate())
                 .status(ChargeStatus.PENDING)
                 .idempotencyKey(idempotencyKey)
-                .issuanceState("ISSUING")
+                .issuanceState(simulated ? SIMULATED : "ISSUING")
                 .customerNameSnapshot(customer.getUser().getName())
                 .petNameSnapshot(pet.getName())
                 .serviceNameSnapshot(service.getName())
-                .c6ExternalReferenceId(C6BankService.newExternalReferenceId())
+                .c6ExternalReferenceId(simulated ? null : C6BankService.newExternalReferenceId())
                 .build();
         // Materialize payer data before leaving the transaction (open-in-view is disabled).
-        customer.getUser().getStreetNumber();
+        if (!simulated) customer.getUser().getStreetNumber();
         return chargeRepository.saveAndFlush(charge);
     }
 
@@ -174,6 +188,11 @@ public class ChargeService {
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public ChargeResponseDTO reconcile(Long chargeId, String bankSlipId) {
+        Charge existing = chargeRepository.findById(chargeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charge not found"));
+        if (SIMULATED.equals(existing.getIssuanceState())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "A simulated charge has no bank boleto");
+        }
         C6BankService.Boleto boleto = c6BankService.getBoleto(bankSlipId);
         return transactions.execute(tx -> {
             Charge charge = chargeRepository.findLockedById(chargeId)
@@ -237,8 +256,9 @@ public class ChargeService {
         LocalDate today = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
         List<Charge> overdueCharges = chargeRepository.findByStatusInAndDueDateBefore(
                 List.of(ChargeStatus.PENDING, ChargeStatus.PAYMENT_IN_PROCESS), today);
-        overdueCharges.forEach(charge -> charge.setStatus(ChargeStatus.OVERDUE));
-        chargeRepository.saveAll(overdueCharges);
+        overdueCharges.stream()
+                .filter(charge -> !SIMULATED.equals(charge.getIssuanceState()))
+                .forEach(charge -> charge.setStatus(ChargeStatus.OVERDUE));
     }
 
     private ChargeResponseDTO toResponse(Charge charge) {

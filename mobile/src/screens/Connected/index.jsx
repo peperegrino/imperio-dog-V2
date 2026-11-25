@@ -308,7 +308,7 @@ export function Management({ navigation }) {
     [reconcileId, setReconcileId] = useState(""),
     [bankSlipId, setBankSlipId] = useState("");
   const [catalogOpen, setCatalogOpen] = useState(false);
-  const [previewVisible, setPreviewVisible] = useState(false);
+  const [simulatedCharge, setSimulatedCharge] = useState(null);
   const submit = useSubmit();
   const catalog = Array.isArray(services.data) ? services.data : [];
   const catalogReady = !services.loading && !services.error && Array.isArray(services.data);
@@ -428,17 +428,58 @@ export function Management({ navigation }) {
         {!canPreview && !missingService && <Message>Selecione cliente, pet e pelo menos um serviço para visualizar a prévia.</Message>}
         <Action
           title="Simular boleto para apresentação"
-          disabled={!canPreview || submit.busy}
-          onPress={() => setPreviewVisible(true)}
+          disabled={!canIssue || submit.busy}
+          onPress={() => submit.run(async () => {
+            const payload = {
+              customerId,
+              petId,
+              items: selectedServices.map(({ id, quantity }) => ({ serviceId: id, quantity })),
+              serviceDate,
+              dueDate,
+            };
+            const storageKey = `${attemptKey}:simulation`;
+            const pending = JSON.parse((await AsyncStorage.getItem(storageKey)) || "null");
+            const key = JSON.stringify(pending?.payload) === JSON.stringify(payload)
+              ? pending.key
+              : `sim-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            await AsyncStorage.setItem(storageKey, JSON.stringify({ key, payload }));
+            let charge;
+            try {
+              charge = await api.post("/admin/charges/simulate", payload, {
+                headers: { "Idempotency-Key": key },
+              });
+            } catch (error) {
+              if (error.status !== 404 || error.data?.error !== "Request failed") throw error;
+              setSimulatedCharge({
+                customerName: customer.name,
+                petName: pet.name,
+                dueDate,
+                amount: totalCents / 100,
+                items: selectedServices.map((item) => ({
+                  serviceId: item.id, name: item.name, quantity: item.quantity, unitPrice: item.price,
+                })),
+              });
+              return;
+            }
+            await AsyncStorage.removeItem(storageKey);
+            setSimulatedCharge(charge);
+            setQuantities({});
+          })}
         />
         <BoletoPreview
-          visible={previewVisible && canPreview}
-          onClose={() => setPreviewVisible(false)}
-          customer={customer?.name}
-          pet={pet?.name}
-          services={selectedServices}
-          dueDate={dueDate}
-          totalCents={totalCents}
+          visible={Boolean(simulatedCharge)}
+          registered={Boolean(simulatedCharge?.id)}
+          onClose={() => setSimulatedCharge(null)}
+          customer={simulatedCharge?.customerName}
+          pet={simulatedCharge?.petName}
+          services={(simulatedCharge?.items ?? []).map((item) => ({
+            id: item.serviceId,
+            name: item.name,
+            quantity: item.quantity,
+            unitCents: Math.round(Number(item.unitPrice) * 100),
+          }))}
+          dueDate={simulatedCharge?.dueDate}
+          totalCents={Math.round(Number(simulatedCharge?.amount ?? 0) * 100)}
         />
         <Action
           title={submit.busy ? "Emitindo…" : "Emitir boleto real pelo C6"}
@@ -612,7 +653,8 @@ export function ChargeList({ navigation, history = false }) {
             </Text>
             <Text>Vencimento: {date(c.dueDate)}</Text>
             {c.paymentDate && <Text>Pagamento: {date(c.paymentDate)}</Text>}
-            {c.issuanceState && c.issuanceState !== "ISSUED" && (
+            {c.issuanceState === "SIMULATED" && <Message>Simulação sem validade para pagamento.</Message>}
+            {c.issuanceState && !["ISSUED", "SIMULATED"].includes(c.issuanceState) && (
               <Message>
                 {c.issuanceState === "UNKNOWN"
                   ? "Emissão requer conciliação"

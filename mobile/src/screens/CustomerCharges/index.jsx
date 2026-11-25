@@ -133,6 +133,7 @@ export default function CustomerChargesScreen({ navigation }) {
               <View style={styles.divider} />
               <InfoRow label="Pet" value={charge.petName || 'Não informado'} />
               <InfoRow label="Serviço" value={charge.serviceName || 'Não informado'} />
+              {charge.issuanceState === 'SIMULATED' && <InfoRow label="Tipo" value="Simulação" />}
               <View style={styles.cardFooter}>
                 <View><Text style={styles.caption}>{charge.status === 'PAID' ? 'Pago em' : 'Vencimento'}</Text><Text style={styles.dateValue}>{date(charge.status === 'PAID' ? charge.paymentDate : charge.dueDate)}</Text></View>
                 <Text style={styles.amount}>{money(charge.amount)}</Text>

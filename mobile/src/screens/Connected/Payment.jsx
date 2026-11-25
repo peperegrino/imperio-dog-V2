@@ -11,6 +11,7 @@ import {
   Page,
   Action,
   Message,
+  Card,
   ResourceState,
   useResource,
   money,
@@ -66,6 +67,24 @@ export default function Payment({ navigation, route }) {
         {!hasChargeId && <Message>Selecione uma cobrança na lista para ver seus detalhes.</Message>}
         <Action title="Voltar às cobranças" onPress={backToCharges} />
         <Message>{message}</Message>
+      </Page>
+    );
+  }
+
+  if (c.issuanceState === "SIMULATED") {
+    return (
+      <Page title="Boleto demonstrativo" navigation={navigation}>
+        <Card>
+          <Message>Simulação sem validade para pagamento.</Message>
+          <Message>Tutor: {c.customerName}</Message>
+          <Message>Pet: {c.petName}</Message>
+          {c.items?.map((item) => (
+            <Message key={item.serviceId}>{item.quantity} × {item.name}</Message>
+          ))}
+          <Message>Vencimento previsto: {date(c.dueDate)}</Message>
+          <Message>Valor demonstrativo: {money(c.amount)}</Message>
+        </Card>
+        <Action title="Voltar às cobranças" onPress={backToCharges} />
       </Page>
     );
   }

@@ -88,7 +88,7 @@ function ChargeCard({ charge, onOpenCharges }) {
         <Text style={styles.chargeId}>#{charge.id}</Text>
         <StatusPill tone={status.tone}>{status.label}</StatusPill>
       </View>
-      <Text style={styles.chargeTitle}>{charge.serviceName || 'Cobrança'}</Text>
+      <Text style={styles.chargeTitle}>{charge.issuanceState === 'SIMULATED' && 'Simulação · '}{charge.serviceName || 'Cobrança'}</Text>
       <Text style={styles.chargeDescription}>
         {charge.petName ? `${charge.petName} · ` : ''}
         {dueDate ? `Vencimento ${dueDate}` : 'Vencimento não informado'}
@@ -163,7 +163,8 @@ export default function HomeScreen({ navigation }) {
   );
 
   const openChargesForTutor = charges.filter((charge) => (
-    ['PENDING', 'PAYMENT_IN_PROCESS', 'OVERDUE'].includes(charge.status)
+    charge.issuanceState !== 'SIMULATED'
+    && ['PENDING', 'PAYMENT_IN_PROCESS', 'OVERDUE'].includes(charge.status)
   ));
   const visibleCharges = useMemo(() => {
     return filterCharges(charges, activeFilter);
@@ -171,6 +172,7 @@ export default function HomeScreen({ navigation }) {
   const billedServices = useMemo(() => {
     const byName = new Map();
     charges.forEach((charge) => {
+      if (charge.issuanceState === 'SIMULATED') return;
       const name = charge.serviceName?.trim();
       if (!name) return;
       const entry = byName.get(name) || { name, count: 0, pets: new Set(), chargeId: charge.id };
@@ -182,7 +184,7 @@ export default function HomeScreen({ navigation }) {
   }, [charges]);
 
   const hasPendingCharges = openChargesForTutor.length > 0;
-  const currentCharge = openChargesForTutor[0] || charges[0] || null;
+  const currentCharge = openChargesForTutor[0] || charges.find((charge) => charge.issuanceState !== 'SIMULATED') || null;
   const currentChargeStatus = currentCharge ? getChargeStatus(currentCharge.status) : null;
   const currentChargeDueDate = currentCharge ? formatDate(currentCharge.dueDate) : '';
 
