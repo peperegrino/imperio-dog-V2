@@ -143,7 +143,7 @@ export default function CustomerChargesScreen({ navigation }) {
           );
         })}
 
-        <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Charges')} style={styles.primaryButton}>
+        <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Charges', { homeRoute: 'Admin' })} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>＋  Nova cobrança bancária</Text>
         </Pressable>
       </ScrollView>

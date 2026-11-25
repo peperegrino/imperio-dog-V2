@@ -2,6 +2,7 @@ package com.example.imperiodogapi.service;
 
 import com.example.imperiodogapi.dto.CustomerRequestDTO;
 import com.example.imperiodogapi.dto.CustomerResponseDTO;
+import com.example.imperiodogapi.dto.CustomerUpdateRequestDTO;
 import com.example.imperiodogapi.entities.Customer;
 import com.example.imperiodogapi.entities.User;
 import com.example.imperiodogapi.entities.enums.Role;
@@ -73,6 +74,16 @@ public class CustomerService {
     @Transactional(readOnly = true)
     public List<CustomerResponseDTO> findAll() {
         return customerRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    @Transactional
+    public CustomerResponseDTO updateCustomer(Long id, CustomerUpdateRequestDTO request) {
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer not found"));
+        User user = customer.getUser();
+        user.setName(request.name().trim());
+        user.setPhone(request.phone() == null || request.phone().isBlank() ? null : request.phone().trim());
+        return toResponse(customer);
     }
 
     private CustomerResponseDTO toResponse(Customer customer) {

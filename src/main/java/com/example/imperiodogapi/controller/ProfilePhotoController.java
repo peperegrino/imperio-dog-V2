@@ -9,6 +9,7 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -53,6 +54,19 @@ public class ProfilePhotoController {
     public ResponseEntity<Photo> updatePetPhoto(@AuthenticationPrincipal UserDetails principal,
                                                 @PathVariable @Positive Long id, @Valid @RequestBody PhotoUpload request) {
         return photo(photos.updatePetPhoto(principal.getUsername(), id, request.base64()));
+    }
+
+    @DeleteMapping("/me/photo")
+    public ResponseEntity<Void> deleteAccountPhoto(@AuthenticationPrincipal UserDetails principal) {
+        photos.deleteAccountPhoto(principal.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/pets/{id}/photo")
+    public ResponseEntity<Void> deletePetPhoto(@AuthenticationPrincipal UserDetails principal,
+                                               @PathVariable @Positive Long id) {
+        photos.deletePetPhoto(principal.getUsername(), id);
+        return ResponseEntity.noContent().build();
     }
 
     private static ResponseEntity<Photo> photo(String data) {

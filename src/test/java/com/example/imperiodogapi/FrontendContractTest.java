@@ -78,6 +78,17 @@ class FrontendContractTest {
     .content("{\"base64\":\"bm90IGFuIGltYWdl\"}")).andExpect(status().isBadRequest());
   mvc.perform(get(petPhoto).header("Authorization", tutorToken))
     .andExpect(status().isOk()).andExpect(jsonPath("$.data").value(savedAdminPhoto));
+
+  mvc.perform(delete(accountPhoto).header("Authorization", tutorToken))
+    .andExpect(status().isNoContent());
+  mvc.perform(get(accountPhoto).header("Authorization", tutorToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
+
+  mvc.perform(delete(petPhoto).header("Authorization", otherToken)).andExpect(status().isNotFound());
+  mvc.perform(delete(petPhoto).header("Authorization", tutorToken))
+    .andExpect(status().isNoContent());
+  mvc.perform(get(petPhoto).header("Authorization", tutorToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
  }
 
  private User testUser(String email, String password, Role role) {

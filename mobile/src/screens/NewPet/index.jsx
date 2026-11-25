@@ -50,21 +50,24 @@ function isValidBirthDate(value) {
     && date <= new Date();
 }
 
-function validate(values) {
+function validate(values, editing = false) {
   const errors = {};
 
   if (!values.name.trim()) errors.name = 'Informe o nome do pet.';
-  if (!values.species) errors.species = 'Selecione a espécie.';
-  if (!values.breed.trim()) errors.breed = 'Informe a raça.';
-  if (!values.sex) errors.sex = 'Selecione o sexo.';
-  if (!values.birthDate.trim()) errors.birthDate = 'Informe a data de nascimento.';
-  else if (!isValidBirthDate(values.birthDate.trim())) {
+  if (!editing && !values.species) errors.species = 'Selecione a espécie.';
+  if (!editing && !values.breed.trim()) errors.breed = 'Informe a raça.';
+  if (!editing && !values.sex) errors.sex = 'Selecione o sexo.';
+  if (!editing && !values.birthDate.trim()) errors.birthDate = 'Informe a data de nascimento.';
+  else if (values.birthDate.trim() && !isValidBirthDate(values.birthDate.trim())) {
     errors.birthDate = 'Use uma data válida no formato DD/MM/AAAA, sem data futura.';
   }
 
-  const weight = Number(values.weight.replace(',', '.'));
-  if (!values.weight.trim()) errors.weight = 'Informe o peso em quilogramas.';
-  else if (!Number.isFinite(weight) || weight <= 0) errors.weight = 'Informe um peso maior que zero.';
+  if (values.weight.trim()) {
+    const weight = Number(values.weight.replace(',', '.'));
+    if (!Number.isFinite(weight) || weight <= 0) errors.weight = 'Informe um peso maior que zero.';
+  } else if (!editing) {
+    errors.weight = 'Informe o peso em quilogramas.';
+  }
 
   return errors;
 }
@@ -101,10 +104,13 @@ function FormField({
   );
 }
 
-function ChoiceField({ label, options, value, onChange, error }) {
+function ChoiceField({ label, options, value, onChange, error, required = true }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}<Text style={styles.required}> *</Text></Text>
+      <Text style={styles.fieldLabel}>
+        {label}
+        {required ? <Text style={styles.required}> *</Text> : null}
+      </Text>
       <View style={styles.choiceRow}>
         {options.map((option) => {
           const selected = value === option;
@@ -155,14 +161,14 @@ export default function NewPetScreen({ navigation, route }) {
     const nextValues = { ...values, [key]: value };
     setValues(nextValues);
     setSubmissionMessage('');
-    if (attemptedSubmit) setErrors(validate(nextValues));
+    if (attemptedSubmit) setErrors(validate(nextValues, editing));
   };
 
   const cancel = () => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Pets');
 
   const submit = async () => {
     if (saving) return;
-    const nextErrors = validate(values);
+    const nextErrors = validate(values, editing);
     setErrors(nextErrors);
     setAttemptedSubmit(true);
 
@@ -180,12 +186,22 @@ export default function NewPetScreen({ navigation, route }) {
       const payload = {
   ...values,
   customerId,
-  birthDate: values.birthDate.trim().split('/').reverse().join('-'),
-  weight: Number(values.weight.replace(',', '.')),
+  birthDate: values.birthDate.trim() ? values.birthDate.trim().split('/').reverse().join('-') : null,
+  weight: values.weight.trim() ? Number(values.weight.replace(',', '.')) : null,
 };
 
 if (editing && !admin) {
-  await api.put(`/account/pets/${pet.id}`, payload);
+  const changed = {};
+  const originalBirthDate = pet.birthDate ? pet.birthDate.split('-').reverse().join('/') : '';
+  const originalWeight = pet.weight == null ? '' : String(pet.weight);
+  if (values.name !== (pet.name || '')) changed.name = values.name.trim();
+  if (values.species !== (pet.species || '')) changed.species = values.species;
+  if (values.breed !== (pet.breed || '')) changed.breed = values.breed;
+  if (values.sex !== (pet.sex || '')) changed.sex = values.sex;
+  if (values.birthDate !== originalBirthDate) changed.birthDate = payload.birthDate;
+  if (values.weight !== originalWeight) changed.weight = payload.weight;
+  if (values.notes !== (pet.notes || '')) changed.notes = values.notes;
+  await api.put(`/account/pets/${pet.id}`, changed);
 } else {
   await api.post(admin ? '/admin/pets' : '/account/pets', payload);
 }
@@ -230,7 +246,9 @@ if (editing && !admin) {
   {editing ? 'Editar informações' : 'Cadastrar Pet'}
 </Text>
             <Text style={styles.description}>
-              Preencha as informações para preparar o cadastro do novo companheiro.
+              {editing
+                ? 'Atualize os dados do seu pet. Altere somente as informações desejadas.'
+                : 'Preencha as informações para preparar o cadastro do novo companheiro.'}
             </Text>
           </View>
 
@@ -254,6 +272,7 @@ if (editing && !admin) {
               label="Espécie"
               onChange={(value) => updateField('species', value)}
               options={['Cachorro', 'Gato']}
+              required={!editing}
               value={values.species}
             />
             <FormField
@@ -261,12 +280,14 @@ if (editing && !admin) {
               onChangeText={(value) => updateField('breed', value)}
               value={values.breed}
               error={errors.breed}
+              required={!editing}
             />
             <ChoiceField
               error={errors.sex}
               label="Sexo"
               onChange={(value) => updateField('sex', value)}
               options={['Macho', 'Fêmea']}
+              required={!editing}
               value={values.sex}
             />
             {fields.slice(2, 4).map((field) => (
@@ -276,6 +297,7 @@ if (editing && !admin) {
                 onChangeText={(value) => updateField(field.key, value)}
                 value={values[field.key]}
                 error={errors[field.key]}
+                required={!editing}
               />
             ))}
 
@@ -311,11 +333,13 @@ if (editing && !admin) {
             onPress={submit}
             style={({ pressed }) => [styles.submitButton, pressed && styles.pressed]}
           >
-            <Text style={styles.submitButtonText}>{saving ? 'Salvando…' : 'Cadastrar Pet'}</Text>
+            <Text style={styles.submitButtonText}>
+              {saving ? 'Salvando…' : editing ? 'Salvar alterações' : 'Cadastrar Pet'}
+            </Text>
           </Pressable>
           {submissionMessage ? (
             <Text accessibilityLiveRegion="polite" style={styles.submissionMessage}>
-              Cadastro não enviado. {submissionMessage}
+              {editing ? 'Alteração não salva.' : 'Cadastro não enviado.'} {submissionMessage}
             </Text>
           ) : null}
           <Pressable

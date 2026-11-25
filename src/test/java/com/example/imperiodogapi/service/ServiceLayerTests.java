@@ -4,6 +4,7 @@ import com.example.imperiodogapi.dto.AuthRequestDTO;
 import com.example.imperiodogapi.dto.AuthResponseDTO;
 import com.example.imperiodogapi.dto.CustomerRequestDTO;
 import com.example.imperiodogapi.dto.CustomerResponseDTO;
+import com.example.imperiodogapi.dto.CustomerUpdateRequestDTO;
 import com.example.imperiodogapi.dto.PetRequestDTO;
 import com.example.imperiodogapi.dto.PetResponseDTO;
 import com.example.imperiodogapi.dto.ServiceRequestDTO;
@@ -144,6 +145,20 @@ private com.example.imperiodogapi.repository.ChargeRepository chargeRepository;
     }
 
     @Test
+    void customerServiceShouldUpdateCustomerContactDetails() {
+        User user = User.builder().id(5L).name("Maria").email("maria@email.com").phone("111").build();
+        Customer customer = Customer.builder().id(10L).user(user).build();
+        when(customerRepository.findById(10L)).thenReturn(Optional.of(customer));
+
+        CustomerResponseDTO response = customerService.updateCustomer(
+                10L, new CustomerUpdateRequestDTO(" Maria Silva ", " 11999999999 "));
+
+        assertEquals("Maria Silva", response.name());
+        assertEquals("11999999999", response.phone());
+        assertEquals("maria@email.com", response.email());
+    }
+
+    @Test
     void petServiceShouldCreateAndFindPet() {
         Customer customer = Customer.builder().id(7L).build();
         PetRequestDTO request = new PetRequestDTO("Rex", "Cachorro", "Vira-lata", 7L);
@@ -164,6 +179,30 @@ private com.example.imperiodogapi.repository.ChargeRepository chargeRepository;
 
         assertEquals(15L, found.id());
         assertEquals("Rex", found.name());
+    }
+
+    @Test
+    void petServiceShouldPreserveUnchangedFieldsDuringPartialUpdate() {
+        Customer customer = Customer.builder().id(7L).build();
+        Pet pet = Pet.builder()
+                .id(15L)
+                .name("Luna")
+                .species("Cachorro")
+                .breed("SRD")
+                .sex("Fêmea")
+                .customer(customer)
+                .build();
+
+        when(petRepository.findLockedById(15L)).thenReturn(Optional.of(pet));
+        when(petRepository.save(any(Pet.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PetRequestDTO request = new PetRequestDTO("Mel", null, null, null, null, null, null, null);
+        PetResponseDTO updated = petService.update(15L, request);
+
+        assertEquals("Mel", updated.name());
+        assertEquals("Cachorro", updated.species());
+        assertEquals("SRD", updated.breed());
+        assertEquals("Fêmea", updated.sex());
     }
 
     @Test
