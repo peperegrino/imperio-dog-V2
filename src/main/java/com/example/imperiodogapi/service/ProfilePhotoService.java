@@ -66,6 +66,19 @@ public class ProfilePhotoService {
         return save(photo, encoded);
     }
 
+    @Transactional
+    public void deleteAccountPhoto(String email) {
+        User user = users.findLockedByEmail(email).orElseThrow(ProfilePhotoService::accountNotFound);
+        photos.findByUser_Id(user.getId()).ifPresent(photos::delete);
+    }
+
+    @Transactional
+    public void deletePetPhoto(String email, Long petId) {
+        Pet pet = pets.findLockedById(petId).orElseThrow(ProfilePhotoService::petNotFound);
+        verifyPetAccess(account(email), pet);
+        photos.findByPet_Id(petId).ifPresent(photos::delete);
+    }
+
     private String save(ProfilePhoto photo, String encoded) {
         photo.setJpeg(normalize(encoded));
         return dataUri(photos.save(photo));
