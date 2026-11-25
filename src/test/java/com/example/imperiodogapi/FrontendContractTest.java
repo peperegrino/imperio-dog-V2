@@ -134,6 +134,24 @@ class FrontendContractTest {
     .content("{\"name\":\"Rex\",\"species\":\"Cachorro\",\"breed\":\"SRD\",\"customerId\":999999,\"sex\":\"Macho\",\"weight\":8.5,\"birthDate\":\"2020-01-01\",\"notes\":\"Alergia\"}"))
     .andExpect(status().isOk()).andExpect(jsonPath("$.customerId").value(customerId)).andReturn();
   long petId=mapper.readTree(pet.getResponse().getContentAsString()).path("id").asLong();
+  String secondBody = body
+    .replace("frontend@example.com", "second@example.com")
+    .replace("52998224725", "11144477735");
+
+mvc.perform(post("/api/auth/register")
+    .contentType(MediaType.APPLICATION_JSON)
+    .content(secondBody))
+    .andExpect(status().isCreated());
+
+mvc.perform(put("/api/account/pets/"+petId)
+    .with(user("second@example.com").roles("CLIENT"))
+    .contentType(MediaType.APPLICATION_JSON)
+    .content("{\"name\":\"Alteracao indevida\"}"))
+    .andExpect(status().isNotFound());
+
+mvc.perform(delete("/api/account/pets/"+petId)
+    .with(user("second@example.com").roles("CLIENT")))
+    .andExpect(status().isNotFound());
   mvc.perform(get("/api/account/pets").header("Authorization","Bearer "+token)).andExpect(status().isOk()).andExpect(jsonPath("$[0].notes").value("Alergia"));
   var service=mvc.perform(post("/api/admin/services").with(user("admin").roles("ADMIN")).contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Banho\",\"price\":25.50}"))
     .andExpect(status().isCreated()).andReturn();
@@ -147,6 +165,25 @@ class FrontendContractTest {
   var charge=mvc.perform(post("/api/admin/charges").with(user("admin").roles("ADMIN")).header("Idempotency-Key","frontend-contract-0001").contentType(MediaType.APPLICATION_JSON).content(chargeBody))
     .andExpect(status().isCreated()).andExpect(jsonPath("$.amount").value(156.5)).andExpect(jsonPath("$.items[0].quantity").value(3)).andExpect(jsonPath("$.items[1].quantity").value(2)).andReturn();
   long chargeId=mapper.readTree(charge.getResponse().getContentAsString()).path("id").asLong();
+  mvc.perform(delete("/api/account/pets/"+petId)
+    .header("Authorization","Bearer "+token))
+    .andExpect(status().isConflict());
+
+mvc.perform(delete("/api/account/pets/"+petId)
+    .with(user("admin").roles("ADMIN")))
+    .andExpect(status().isForbidden());
+
+mvc.perform(get("/api/charges/"+chargeId)
+    .header("Authorization","Bearer "+token))
+    .andExpect(status().isOk());
+
+mvc.perform(put("/api/account/pets/"+petId)
+    .header("Authorization","Bearer "+token)
+    .contentType(MediaType.APPLICATION_JSON)
+    .content("{\"name\":\"Rex Atualizado\",\"customerId\":999999}"))
+    .andExpect(status().isOk())
+    .andExpect(jsonPath("$.name").value("Rex Atualizado"))
+    .andExpect(jsonPath("$.customerId").value(customerId));
   mvc.perform(post("/api/admin/charges").with(user("admin").roles("ADMIN")).header("Idempotency-Key","frontend-contract-0001").contentType(MediaType.APPLICATION_JSON).content(chargeBody)).andExpect(status().isCreated());
   verify(bank,times(1)).createBoleto(any());
   mvc.perform(get("/api/charges/"+chargeId).header("Authorization","Bearer "+token)).andExpect(status().isOk());

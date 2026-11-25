@@ -62,6 +62,11 @@ public class SecurityConfig {
                                 "/webhooks/c6", "/api/webhooks/c6")
                         .permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        // The photo service checks pet ownership and allows administrators.
+                        .requestMatchers("/account/pets/*/photo", "/api/account/pets/*/photo").authenticated()
+                        .requestMatchers(
+                                "/account/pets", "/account/pets/**",
+                                "/api/account/pets", "/api/account/pets/**").hasRole("CLIENT")
                         .requestMatchers(HttpMethod.GET,
                                 "/customers/me", "/api/customers/me",
                                 "/charges/my-charges", "/api/charges/my-charges")
