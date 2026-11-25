@@ -1,67 +1,159 @@
-# Deploy em nuvem
+# Deploy da integracao final
 
-Arquitetura: **frontend** (Vercel) → **backend Spring Boot** (container Docker) → **PostgreSQL gerenciado**.
-A Vercel não executa containers Docker nem processos Java de longa duração; hospede o backend em
-Render, Railway, Fly.io ou Azure usando o `Dockerfile` deste repositório.
+Este guia descreve a publicacao da branch `integracao/final-tcc-2026-11-25` nos recursos
+existentes. Nao cria infraestrutura. **Os comandos de publicacao abaixo nao foram executados;
+execute-os somente depois de uma autorizacao explicita para deploy.**
 
-## Variáveis de ambiente
+## Recursos que devem permanecer
 
-| Variável | Obrigatória | Descrição |
-|---|---|---|
-| `SPRING_PROFILES_ACTIVE` | sim (prod) | `prod` (o `Dockerfile` já define). Bloqueia o secret JWT de desenvolvimento. |
-| `DB_URL` | sim | `jdbc:postgresql://<host>/<db>?sslmode=require` |
-| `DB_USERNAME` / `DB_PASSWORD` | sim | Credenciais do banco |
-| `JWT_SECRET` | sim (prod) | `openssl rand -base64 48` (mínimo 32 bytes) |
-| `JWT_EXPIRATION_MS` | não | Padrão 86400000 (24 h) |
-| `CORS_ALLOWED_ORIGINS` | sim | Ex.: `https://seu-app.vercel.app` (vírgula para vários) |
-| `CORS_ALLOWED_ORIGIN_PATTERNS` | não | Ex.: `https://seu-projeto-*.vercel.app` (previews) |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | 1º deploy | Cria o primeiro admin se não existir nenhum. Senha ≥ 12 caracteres. Remova depois do primeiro boot. |
-| `DDL_AUTO` | não | `update` (padrão) cria as tabelas; use `validate` quando adotar migrations |
-| `DB_POOL_SIZE` | não | Padrão 5 (planos gratuitos têm poucas conexões) |
-| `C6_*` | conforme uso | Credenciais e certificado do C6 Bank |
+| Servico | Recurso existente |
+|---|---|
+| Azure Resource Group | `imperio-dog-rg` |
+| Azure Container App | `imperio-dog-api` |
+| Azure Database for PostgreSQL | servidor `imperio-dog-db`, banco `imperiodog` |
+| Regiao Azure | `brazilsouth` |
+| Docker Hub | `ryliima/imperio-dog-api` |
+| Vercel team / projeto | `ryliimas-projects` / `imperio-dog` |
+| Vercel Root Directory | `mobile` |
+| Aplicativo oficial (nao alterar) | `https://imperio-dog-fawn.vercel.app` |
+| API existente | `https://imperio-dog-api.kindwater-77f7be6b.brazilsouth.azurecontainerapps.io/api` |
 
-A porta é lida de `PORT` ou `WEBSITES_PORT` (padrão 8080). Health check: `GET /actuator/health`.
+Nao crie resource groups, Container Apps, bancos, projetos Vercel ou repositorios Docker novos.
+Nao altere as configuracoes existentes do C6 Bank. A URL oficial e o QR Code devem permanecer iguais.
 
-## Banco de dados
+## 1. Validar o codigo e os recursos
 
-- **Neon**: `jdbc:postgresql://<host>.neon.tech/<db>?sslmode=require`.
-- **Supabase**: use o *Session pooler* (a conexão direta é apenas IPv6).
-- **Azure Database for PostgreSQL (Flexible Server)**:
-  `jdbc:postgresql://<servidor>.postgres.database.azure.com:5432/<db>?sslmode=require`;
-  libere o IP de saída do App Service/Container Apps no firewall do servidor.
+No PowerShell, na raiz do repositorio:
 
-## Render / Railway
-
-1. Crie um *Web Service* a partir do repositório (branch do backend) usando o `Dockerfile`.
-2. Configure as variáveis acima e o health check em `/actuator/health`.
-3. Certificado `.p12` do C6: use *Secret Files* (Render) ou volume (Railway) e aponte `C6_CERTIFICATE_PATH`.
-
-## Azure
-
-Opção simples: **Azure App Service (Web App for Containers)** ou **Azure Container Apps**.
-
-```bash
-az group create -n imperio-dog-rg -l brazilsouth
-az acr create -g imperio-dog-rg -n <acrNome> --sku Basic
-az acr build -r <acrNome> -t imperio-dog-api:latest .
-
-az appservice plan create -g imperio-dog-rg -n imperio-dog-plan --is-linux --sku B1
-az webapp create -g imperio-dog-rg -p imperio-dog-plan -n <appNome> \
-  --deployment-container-image-name <acrNome>.azurecr.io/imperio-dog-api:latest
-az webapp config appsettings set -g imperio-dog-rg -n <appNome> --settings \
-  WEBSITES_PORT=8080 SPRING_PROFILES_ACTIVE=prod \
-  DB_URL=... DB_USERNAME=... DB_PASSWORD=... JWT_SECRET=... \
-  CORS_ALLOWED_ORIGINS=https://seu-app.vercel.app \
-  ADMIN_EMAIL=... ADMIN_PASSWORD=...
-az webapp config set -g imperio-dog-rg -n <appNome> --generic-configurations '{"healthCheckPath":"/actuator/health"}'
+```powershell
+git fetch origin --prune
+git switch integracao/final-tcc-2026-11-25
+git pull --ff-only origin integracao/final-tcc-2026-11-25
+git status --short --branch
+git log -1 --oneline
+.\mvnw.cmd -B verify
+Push-Location .\mobile
+npm.cmd ci
+npm.cmd run lint
+npm.cmd run typecheck
+npm.cmd run build
+Pop-Location
 ```
 
-Guarde segredos no **Azure Key Vault** (referências em App Settings) em vez de texto puro. Planos pagos
-(B1 ou superior) não "dormem" por inatividade, o que mantém a sincronização agendada com o C6 e os webhooks estáveis.
-O frontend pode continuar na Vercel ou ir para **Azure Static Web Apps**.
+Confirme que `git status` esta limpo e que o commit testado e o commit que sera publicado.
+Defina `EXPO_PUBLIC_API_URL` no ambiente de build do Vercel para a URL da API acima, incluindo
+`/api`. A origem permitida no CORS do backend deve incluir `https://imperio-dog-fawn.vercel.app`.
+Nao substitua valores secretos ou outras configuracoes existentes para fazer essa verificacao.
 
-## Primeiro administrador
+## 2. Backup e migracoes PostgreSQL
 
-No primeiro boot com `ADMIN_EMAIL` e `ADMIN_PASSWORD` definidos e nenhum usuário `ADMIN` no banco, o admin é criado.
-Se já existir um admin, nada é alterado (reiniciar não redefine senha). Faça login em `POST /auth/login`
-e crie clientes com `POST /admin/customers`.
+Antes de qualquer migracao, confira a conta Azure e os nomes dos recursos. Pare se o servidor
+ou o banco nao corresponderem aos nomes deste guia. O backup deve ficar fora do repositorio.
+Use uma conta autorizada; nao coloque senhas em argumentos, arquivos do projeto ou Git.
+
+```powershell
+az account show --output table
+az postgres flexible-server show --resource-group imperio-dog-rg --name imperio-dog-db --output table
+$env:PGHOST = az postgres flexible-server show --resource-group imperio-dog-rg --name imperio-dog-db --query fullyQualifiedDomainName --output tsv
+$env:PGDATABASE = "imperiodog"
+$env:PGUSER = Read-Host "Usuario PostgreSQL autorizado"
+$backup = Join-Path $env:USERPROFILE ("imperiodog-before-integration-{0}.dump" -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+pg_dump --host $env:PGHOST --port 5432 --username $env:PGUSER --dbname $env:PGDATABASE --format custom --no-owner --file $backup
+pg_restore --list $backup | Select-Object -First 20
+```
+
+`pg_dump` solicitara a senha interativamente. Confirme que o backup e legivel antes de prosseguir.
+Com o backup confirmado e uma janela aprovada para migracao, aplique as migracoes aditivas nesta ordem:
+
+```powershell
+$db = "host=$env:PGHOST port=5432 dbname=$env:PGDATABASE user=$env:PGUSER sslmode=require"
+psql $db -v ON_ERROR_STOP=1 -f .\docs\sql\2026-11-frontend-integration.sql
+psql $db -v ON_ERROR_STOP=1 -f .\docs\sql\2026-11-financial-consistency.sql
+psql $db -v ON_ERROR_STOP=1 -f .\docs\sql\2026-11-profile-photos.sql
+```
+
+As migracoes adicionam campos de pets/cobrancas e a tabela `profile_photos`; nao apagam dados.
+A migracao financeira cria indices unicos e deve parar em caso de dados duplicados. Investigue
+e resolva inconsistencias com aprovacao; nunca descarte registros financeiros para forcar o deploy.
+O rollback da aplicacao nao remove essas tabelas ou dados.
+
+## 3. Construir e testar a imagem localmente
+
+Com Docker Desktop ativo, rode na raiz do repositorio. A tag e o hash do commit integrado:
+
+```powershell
+$tag = (git rev-parse --short HEAD).Trim()
+docker build --pull --tag "ryliima/imperio-dog-api:$tag" .
+```
+
+Para publicar, primeiro confira que o branch, o commit e os testes sao os aprovados. O login deve
+ser interativo; nao passe tokens como argumentos:
+
+```powershell
+docker login --username ryliima
+docker push "ryliima/imperio-dog-api:$tag"
+```
+
+O container usa Java 21, inicia como usuario sem privilegios e escuta a porta 8080 (ou `PORT` /
+`WEBSITES_PORT`). O health endpoint e `/actuator/health`. As variaveis de conexao PostgreSQL,
+JWT e CORS devem ser mantidas no Container App existente; nao grave seus valores neste repositorio.
+
+Variaveis relevantes do backend:
+
+| Variavel | Uso |
+|---|---|
+| `SPRING_PROFILES_ACTIVE` | `prod`; o Dockerfile ja define esse profile. |
+| `DB_URL` | URL JDBC PostgreSQL com TLS, por exemplo `jdbc:postgresql://<host>:5432/imperiodog?sslmode=require`. |
+| `DB_USERNAME` / `DB_PASSWORD` | Credenciais armazenadas como secrets no Container App. |
+| `JWT_SECRET` | Secret de producao forte; nunca usar o fallback de desenvolvimento. |
+| `CORS_ALLOWED_ORIGINS` | Deve permitir a origem oficial `https://imperio-dog-fawn.vercel.app`. |
+| `DDL_AUTO` | O padrao da aplicacao e `update`; nao mudar para `validate` sem confirmar que todas as migracoes foram aplicadas. |
+| `PORT` / `WEBSITES_PORT` | Porta HTTP; padrao 8080. |
+| `C6_*` | Preservar os valores existentes; nao alterar nem testar operacoes bancarias no deploy desta integracao. |
+
+## 4. Atualizar o Container App existente
+
+Confirme a subscription e a imagem atual antes de atualizar. Guarde `$previousImage` para rollback:
+
+```powershell
+az containerapp show --resource-group imperio-dog-rg --name imperio-dog-api --query "{name:name,environment:properties.environmentId,image:properties.template.containers[0].image}" --output yaml
+$previousImage = az containerapp show --resource-group imperio-dog-rg --name imperio-dog-api --query "properties.template.containers[0].image" --output tsv
+az containerapp update --resource-group imperio-dog-rg --name imperio-dog-api --image "ryliima/imperio-dog-api:$tag"
+az containerapp revision list --resource-group imperio-dog-rg --name imperio-dog-api --output table
+Invoke-RestMethod https://imperio-dog-api.kindwater-77f7be6b.brazilsouth.azurecontainerapps.io/actuator/health
+```
+
+Valide health, login, cobranca simulada persistida para o tutor correto, isolamento entre tutores,
+fotos e logs da revisao antes de considerar a API aprovada. Nao execute operacoes no C6.
+
+Rollback da imagem, caso a revisao nova falhe:
+
+```powershell
+az containerapp update --resource-group imperio-dog-rg --name imperio-dog-api --image $previousImage
+az containerapp revision list --resource-group imperio-dog-rg --name imperio-dog-api --output table
+Invoke-RestMethod https://imperio-dog-api.kindwater-77f7be6b.brazilsouth.azurecontainerapps.io/actuator/health
+```
+
+Nao restaure o backup sobre o banco como rollback de rotina. Mantenha as migracoes aditivas e
+reverta somente a imagem, salvo decisao operacional separada.
+
+## 5. Publicar o frontend Vercel existente
+
+Confirme no dashboard que o team e o projeto continuam `ryliimas-projects` / `imperio-dog`,
+Root Directory `mobile`, build `npm run build`, saida `dist` e a variavel `EXPO_PUBLIC_API_URL`
+com a API atual. A URL publica deve continuar `https://imperio-dog-fawn.vercel.app`.
+
+Quando houver autorizacao explicita para publicar o frontend, use o CLI sem instalacao global e
+confirme que o link local aponta para o projeto existente antes de aceitar o deploy:
+
+```powershell
+Push-Location .\mobile
+npx.cmd vercel --version
+npx.cmd vercel whoami
+npx.cmd vercel link --project imperio-dog --scope ryliimas-projects
+npx.cmd vercel --prod --scope ryliimas-projects
+Pop-Location
+```
+
+Se o CLI indicar outra equipe/projeto, ou oferecer criar um novo projeto, cancele. Para rollback,
+promova pelo dashboard Vercel um deployment anterior conhecido como funcional; nao mude o dominio.

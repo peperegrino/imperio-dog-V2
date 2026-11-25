@@ -1,6 +1,6 @@
 # Publicação de fotos de perfil e edição de pets
 
-Este procedimento publica a branch `feature/profile-pets-integration` no backend Azure Container Apps e no frontend Vercel existentes. Execute-o em uma estação de trabalho autorizada, depois de revisão e aprovação. **Não faça merge direto na branch de produção e não execute os passos de publicação sem autorização.**
+Este procedimento publica a branch `integracao/final-tcc-2026-11-25` no backend Azure Container Apps e no frontend Vercel existentes. Execute-o em uma estação de trabalho autorizada, depois de revisão e aprovação. **Não faça merge direto na branch de produção e não execute os passos de publicação sem autorização. Consulte também [DEPLOY.md](./DEPLOY.md) para os alvos, migrações e comandos integrados.**
 
 ## 1. Recuperar e validar a branch
 
@@ -10,8 +10,8 @@ No PowerShell:
 git clone https://github.com/peperegrino/imperio-dog-V2.git
 Set-Location .\imperio-dog-V2
 git fetch origin --prune
-git switch --track origin/feature/profile-pets-integration
-git pull --ff-only
+git switch --track origin/integracao/final-tcc-2026-11-25
+git pull --ff-only origin integracao/final-tcc-2026-11-25
 git status
 git log -5 --oneline --decorate
 ```
@@ -48,9 +48,11 @@ Defina `PGHOST` para o hostname confirmado do servidor PostgreSQL e `PGUSER` par
 
 ## 3. Aplicar a migração aditiva do banco
 
-O armazenamento é PostgreSQL `bytea`, persistente e sem serviço adicional. A tabela `profile_photos` referencia `users` e `pets` com exclusão em cascata e uma restrição para vincular cada foto a exatamente um proprietário. O script é idempotente. Hibernate pode criar a tabela por `DDL_AUTO=update`; aplicar o script explicitamente antes do deploy é uma etapa verificável. Não remova nem altere dados existentes.
+O armazenamento é PostgreSQL `bytea`, persistente e sem serviço adicional. A tabela `profile_photos` referencia `users` e `pets` com exclusão em cascata e uma restrição para vincular cada foto a exatamente um proprietário. Para o branch integrado, aplique as três migrações na ordem indicada em [DEPLOY.md](./DEPLOY.md): campos de pets/linhas de cobrança, consistência financeira e fotos. Hibernate também pode criar/atualizar tabelas por `DDL_AUTO=update`; não remova nem altere dados existentes.
 
 ```powershell
+psql "host=$env:PGHOST port=5432 dbname=imperiodog user=$env:PGUSER sslmode=require" -v ON_ERROR_STOP=1 -f .\docs\sql\2026-11-frontend-integration.sql
+psql "host=$env:PGHOST port=5432 dbname=imperiodog user=$env:PGUSER sslmode=require" -v ON_ERROR_STOP=1 -f .\docs\sql\2026-11-financial-consistency.sql
 psql "host=$env:PGHOST port=5432 dbname=imperiodog user=$env:PGUSER sslmode=require" -v ON_ERROR_STOP=1 -f .\docs\sql\2026-11-profile-photos.sql
 psql "host=$env:PGHOST port=5432 dbname=imperiodog user=$env:PGUSER sslmode=require" -v ON_ERROR_STOP=1 -c "SELECT to_regclass('public.profile_photos');"
 ```
@@ -75,6 +77,7 @@ O login deve ser interativo (ou usar o gerenciador de credenciais configurado); 
 Confirme subscription, resource group e Container App antes do comando. O comando atualiza a imagem do recurso existente; não cria outro app.
 
 ```powershell
+$previousImage = az containerapp show --resource-group imperio-dog-rg --name imperio-dog-api --query "properties.template.containers[0].image" --output tsv
 az containerapp show --resource-group imperio-dog-rg --name imperio-dog-api --query "{name:name,environment:properties.environmentId,image:properties.template.containers[0].image}" --output yaml
 az containerapp update --resource-group imperio-dog-rg --name imperio-dog-api --image "ryliima/imperio-dog-api:$tag"
 az containerapp revision list --resource-group imperio-dog-rg --name imperio-dog-api --output table
@@ -90,11 +93,14 @@ Mantenha o projeto, URL e QR Code atuais. Confirme na equipe `ryliimas-projects`
 Depois de validar a API e obter autorização:
 
 ```powershell
-npx vercel whoami
-npx vercel --prod
+Push-Location .\mobile
+npx.cmd vercel whoami
+npx.cmd vercel link --project imperio-dog --scope ryliimas-projects
+npx.cmd vercel --prod
+Pop-Location
 ```
 
-Execute o CLI a partir da raiz do repositório, não de `mobile/`; confirme que a conta/projeto vinculados são os existentes antes de confirmar qualquer prompt de produção.
+Confirme que a conta/projeto vinculados são os existentes antes de confirmar qualquer prompt de produção.
 
 ## 7. Rollback
 
@@ -102,7 +108,7 @@ Se a nova revisão falhar, reverta a aplicação para a última imagem comprovad
 
 ```powershell
 az containerapp revision list --resource-group imperio-dog-rg --name imperio-dog-api --output table
-az containerapp update --resource-group imperio-dog-rg --name imperio-dog-api --image "ryliima/imperio-dog-api:1e471ea"
+az containerapp update --resource-group imperio-dog-rg --name imperio-dog-api --image $previousImage
 ```
 
 Confirme o health check e o login após o rollback. Reverta o frontend pela interface de deployments do projeto Vercel existente para um deployment anterior conhecido como funcional. Preserve o backup até a validação do novo release e o fim da janela de rollback. Não restaure um dump sobre o banco de produção sem uma decisão operacional explícita: a migração é aditiva e o rollback normal é apenas da aplicação.
