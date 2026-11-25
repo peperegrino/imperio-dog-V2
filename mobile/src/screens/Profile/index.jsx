@@ -13,6 +13,7 @@ import { SvgXml } from 'react-native-svg';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { ResourceState, useResource } from '../../components/ConnectedUI';
+import ProfilePhoto from '../../components/ProfilePhoto';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { colors } from '../../theme/colors';
 
@@ -82,7 +83,7 @@ function SectionTitle({ icon, children, trailing, headingStyle }) {
   );
 }
 
-function PetCard({ name, breed, size, icon, onPress }) {
+function PetCard({ id, name, breed, size, icon, onPress }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -90,7 +91,13 @@ function PetCard({ name, breed, size, icon, onPress }) {
       onPress={onPress}
       style={({ pressed }) => [styles.petCard, pressed && styles.pressed]}
     >
-      <View style={styles.petIconBox}><ProfileIcon name={icon} size={20} /></View>
+      <ProfilePhoto
+        path={`/account/pets/${id}/photo`}
+        label={`Foto de ${name}`}
+        size={40}
+        readOnly
+        fallback={<View style={styles.petIconBox}><ProfileIcon name={icon} size={20} /></View>}
+      />
       <View style={styles.petText}>
         <Text style={styles.petName}>{name}</Text>
         <Text style={styles.petDetail}>{breed}</Text>
@@ -189,7 +196,12 @@ export default function ProfileScreen({ navigation }) {
         <ResourceState resource={account} />
         <View style={styles.identityCard}>
           <View style={styles.identityCenter}>
-            <ProfileAvatar />
+            <ProfilePhoto
+              path="/account/me/photo"
+              label="Foto de perfil"
+              size={96}
+              fallback={<ProfileAvatar />}
+            />
             <Text style={styles.identityName}>{profile.name}</Text>
           </View>
           <View style={styles.identityDivider} />
@@ -207,7 +219,7 @@ export default function ProfileScreen({ navigation }) {
           <SectionTitle icon="paw" headingStyle={styles.petsHeading}>MEUS PETS</SectionTitle>
           <ResourceState resource={pets} />
           {pets.data?.map((pet) => (
-            <PetCard key={pet.id} name={pet.name} breed={pet.breed}
+            <PetCard key={pet.id} id={pet.id} name={pet.name} breed={pet.breed}
               size={pet.weight == null ? '' : `${pet.weight} kg`} icon="dog" onPress={navigateToPets} />
           ))}
           <Pressable accessibilityRole="button" onPress={() => navigation.navigate('NewPet', { homeRoute })} style={({ pressed }) => [styles.addPetButton, pressed && styles.pressed]}>

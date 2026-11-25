@@ -7,7 +7,7 @@ const roles = [
   { key: 'equipe', label: 'Equipe & Gestão' },
 ];
 
-export default function RoleTabs({ activeRole, onChange }) {
+export default function RoleTabs({ activeRole, onChange, disabled = false }) {
   return (
     <View style={styles.container}>
       {roles.map((role) => {
@@ -16,7 +16,8 @@ export default function RoleTabs({ activeRole, onChange }) {
         return (
           <Pressable
             accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
+            accessibilityState={{ selected: active, disabled }}
+            disabled={disabled}
             key={role.key}
             onPress={() => onChange(role.key)}
             style={[

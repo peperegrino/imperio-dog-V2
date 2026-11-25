@@ -45,8 +45,7 @@ export default function LoginScreen({ navigation, route }) {
     setLoginError('');
     setIsSubmitting(true);
     try {
-      await signIn(email.trim(), senha, lembrar);
-
+      await signIn(email.trim(), senha, lembrar, perfilAtivo === 'equipe' ? 'ADMIN' : 'CLIENT');
     } catch (error) {
       const message = error instanceof ApiError && error.status === 401
         ? 'Confira o e-mail e a senha e tente novamente.'
@@ -72,7 +71,14 @@ export default function LoginScreen({ navigation, route }) {
           <LogoHeader />
 
           <View style={styles.formCard}>
-            <RoleTabs activeRole={perfilAtivo} onChange={setPerfilAtivo} />
+            <RoleTabs
+              activeRole={perfilAtivo}
+              disabled={isSubmitting}
+              onChange={(role) => {
+                setPerfilAtivo(role);
+                setLoginError('');
+              }}
+            />
             <View style={styles.emailField}>
               <Input
                 label="E-mail cadastrado"

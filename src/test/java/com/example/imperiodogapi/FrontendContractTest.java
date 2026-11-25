@@ -1,6 +1,10 @@
 package com.example.imperiodogapi;
 
 import com.example.imperiodogapi.service.C6BankService;
+import com.example.imperiodogapi.entities.Customer;
+import com.example.imperiodogapi.entities.Pet;
+import com.example.imperiodogapi.entities.User;
+import com.example.imperiodogapi.entities.enums.Role;
 import com.example.imperiodogapi.repository.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +14,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import tools.jackson.databind.ObjectMapper;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.util.Base64;
+import java.util.Map;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -23,7 +33,90 @@ class FrontendContractTest {
  @Autowired MockMvc mvc;
  @Autowired ObjectMapper mapper;
  @Autowired ChargeRepository charges;
+ @Autowired UserRepository users;
+ @Autowired CustomerRepository customers;
+ @Autowired PetRepository pets;
+ @Autowired PasswordEncoder passwordEncoder;
  @MockitoBean C6BankService bank;
+
+ @Test
+ void loginChecksBothSelectedProfilesAndPhotosArePrivate() throws Exception {
+  String password = "SenhaTeste12345!";
+  var owner = customers.save(Customer.builder()
+    .user(testUser("photo-tutor@example.com", password, Role.CLIENT)).build());
+  User tutor = owner.getUser();
+  User admin = users.save(testUser("photo-admin@example.com", password, Role.ADMIN));
+  User anotherTutor = users.save(testUser("photo-other@example.com", password, Role.CLIENT));
+  String tutorToken = loginWithSelectedRole(tutor, password);
+  String adminToken = loginWithSelectedRole(admin, password);
+  String otherToken = loginWithSelectedRole(anotherTutor, password);
+
+  var pet = pets.save(Pet.builder().name("Luna").customer(owner).build());
+  String accountPhoto = "/api/account/me/photo";
+  String petPhoto = "/api/account/pets/" + pet.getId() + "/photo";
+  String first = photoPayload(0xB60019);
+  String second = photoPayload(0x00863D);
+  mvc.perform(get(accountPhoto)).andExpect(status().isUnauthorized());
+  mvc.perform(get(accountPhoto).header("Authorization", tutorToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
+  String savedTutorPhoto = uploadPhoto(accountPhoto, tutorToken, first);
+  String savedAdminPhoto = uploadPhoto(accountPhoto, adminToken, second);
+  assertNotEquals(savedTutorPhoto, savedAdminPhoto);
+  mvc.perform(get(accountPhoto).header("Authorization", tutorToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.data").value(savedTutorPhoto));
+  mvc.perform(get(accountPhoto).header("Authorization", adminToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.data").value(savedAdminPhoto));
+
+  assertEquals(savedTutorPhoto, uploadPhoto(petPhoto, tutorToken, first));
+  assertEquals(savedAdminPhoto, uploadPhoto(petPhoto, adminToken, second));
+  mvc.perform(get(petPhoto).header("Authorization", tutorToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.data").value(savedAdminPhoto));
+  mvc.perform(get(petPhoto).header("Authorization", otherToken)).andExpect(status().isNotFound());
+  mvc.perform(put(petPhoto).header("Authorization", otherToken).contentType(MediaType.APPLICATION_JSON).content(first))
+    .andExpect(status().isNotFound());
+  mvc.perform(put(petPhoto).header("Authorization", tutorToken).contentType(MediaType.APPLICATION_JSON)
+    .content("{\"base64\":\"bm90IGFuIGltYWdl\"}")).andExpect(status().isBadRequest());
+  mvc.perform(get(petPhoto).header("Authorization", tutorToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.data").value(savedAdminPhoto));
+ }
+
+ private User testUser(String email, String password, Role role) {
+  return User.builder().name("Perfil de teste").email(email)
+    .password(passwordEncoder.encode(password)).role(role).build();
+ }
+
+ private String loginWithSelectedRole(User account, String password) throws Exception {
+  Role actual = account.getRole();
+  Role other = actual == Role.ADMIN ? Role.CLIENT : Role.ADMIN;
+  String otherLabel = other == Role.ADMIN ? "Equipe & Gestão" : "Tutor & Família";
+  String denied = mapper.writeValueAsString(Map.of(
+    "email", account.getEmail(), "password", password, "selectedRole", other));
+  mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(denied))
+    .andExpect(status().isForbidden()).andExpect(jsonPath("$.token").doesNotExist())
+    .andExpect(jsonPath("$.error").value("Esse e-mail não está autorizado a entrar como " + otherLabel + "."));
+  String allowed = mapper.writeValueAsString(Map.of(
+    "email", account.getEmail(), "password", password, "selectedRole", actual));
+  var response = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(allowed))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.role").value("ROLE_" + actual)).andReturn();
+  return "Bearer " + mapper.readTree(response.getResponse().getContentAsString()).path("token").asText();
+ }
+
+ private String uploadPhoto(String path, String token, String payload) throws Exception {
+  var response = mvc.perform(put(path).header("Authorization", token).contentType(MediaType.APPLICATION_JSON)
+    .content(payload)).andExpect(status().isOk()).andReturn();
+  String photo = mapper.readTree(response.getResponse().getContentAsString()).path("data").asText();
+  assertTrue(photo.startsWith("data:image/jpeg;base64,"));
+  return photo;
+ }
+
+ private String photoPayload(int color) throws Exception {
+  var image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
+  image.setRGB(0, 0, color);
+  var bytes = new ByteArrayOutputStream();
+  ImageIO.write(image, "PNG", bytes);
+  return mapper.writeValueAsString(Map.of("base64", Base64.getEncoder().encodeToString(bytes.toByteArray())));
+ }
+
  @Test void signupLoginPetIsolationAndAdminChargeFlow() throws Exception {
   String body="""
    {"name":"Tutor Teste","email":"frontend@example.com","password":"SenhaTeste12345!",

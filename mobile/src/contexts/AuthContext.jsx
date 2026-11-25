@@ -71,9 +71,14 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const signIn = useCallback(async (email, password, remember = true) => {
-    const response = await api.post('/auth/login', { email, password });
+  const signIn = useCallback(async (email, password, remember, selectedRole) => {
+    const response = await api.post('/auth/login', { email, password, selectedRole });
     const nextSession = getLoginDetails(response);
+    const isTeamLogin = selectedRole === 'ADMIN';
+    if (isTeamLogin !== (nextSession.role === 'ADMIN')) {
+      const profile = isTeamLogin ? 'Equipe & Gestão' : 'Tutor & Família';
+      throw new Error(`Esse e-mail não está autorizado a entrar como ${profile}.`);
+    }
 
     try {
       if (remember) await AsyncStorage.multiSet([
