@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, Message, ResourceState, date, useResource } from '../../components/ConnectedUI';
+import ProfilePhoto from '../../components/ProfilePhoto';
 import { colors } from '../../theme/colors';
 import { styles } from './styles';
 
@@ -60,7 +61,7 @@ const removePet = async () => {
         >
           <Text style={styles.backMark}>‹</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>Meus Pets</Text>
+        <Text style={styles.headerTitle}>{admin ? 'Pets' : 'Meus Pets'}</Text>
         <ProfileButton
           onPress={() => navigation.navigate('Profile', { homeRoute })}
           size={32}
@@ -83,6 +84,12 @@ const removePet = async () => {
         <ResourceState resource={resource} />
         {resource.data?.map((pet) => (
           <Card key={pet.id}>
+            <ProfilePhoto
+              path={`/account/pets/${pet.id}/photo`}
+              label={`Foto de ${pet.name}`}
+              size={58}
+              fallback={<View style={styles.pawBadge}><Text style={styles.paw}>{pet.name?.[0]}</Text></View>}
+            />
             <Text style={styles.emptyTitle}>{pet.name}</Text>
             <Text>{[pet.species, pet.breed, pet.sex].filter(Boolean).join(' · ')}</Text>
             {pet.weight != null && <Text>{pet.weight} kg</Text>}

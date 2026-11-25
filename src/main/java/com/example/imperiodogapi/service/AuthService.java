@@ -3,6 +3,7 @@ package com.example.imperiodogapi.service;
 import com.example.imperiodogapi.dto.AuthRequestDTO;
 import com.example.imperiodogapi.dto.AuthResponseDTO;
 import com.example.imperiodogapi.entities.User;
+import com.example.imperiodogapi.entities.enums.Role;
 import com.example.imperiodogapi.repository.UserRepository;
 import com.example.imperiodogapi.security.JwtTokenProvider;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,12 @@ public class AuthService {
         }
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+        Role selectedRole = request.selectedRole();
+        if (selectedRole != null && user.getRole() != selectedRole) {
+            String profile = selectedRole == Role.ADMIN ? "Equipe & Gestão" : "Tutor & Família";
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Esse e-mail não está autorizado a entrar como " + profile + ".");
+        }
         return new AuthResponseDTO(tokenProvider.generateToken(user.getEmail(), user.getRole()),
                 "Bearer", "ROLE_" + user.getRole().name());
     }

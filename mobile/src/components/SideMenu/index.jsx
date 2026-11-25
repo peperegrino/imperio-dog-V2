@@ -12,6 +12,7 @@ import CustomerIcon from '../CustomerIcons';
 const adminItems = [
   { route: 'Admin', label: 'Início', icon: 'home' },
   { route: 'CustomersList', label: 'Clientes', icon: 'quickCustomers' },
+  { route: 'Pets', label: 'Pets', icon: 'pet' },
   { route: 'Customers', label: 'Cadastrar Cliente', icon: 'addCircle' },
   { route: 'CustomerCharges', label: 'Cobranças', icon: 'invoices' },
   { route: 'Charges', label: 'Nova Cobrança', icon: 'quickExpenses' },

@@ -26,7 +26,15 @@
     "plugins": [
       "expo-font",
       "expo-status-bar",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita ao Império Dog selecionar fotos para o perfil e os pets.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }
