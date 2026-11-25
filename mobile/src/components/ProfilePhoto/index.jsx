@@ -8,7 +8,7 @@ import { colors } from '../../theme/colors';
 
 const MAX_BASE64_LENGTH = 4 * Math.ceil((4 * 1024 * 1024) / 3);
 
-export default function ProfilePhoto({ path, label, fallback, size, readOnly = false }) {
+export default function ProfilePhoto({ path, label, fallback, size, readOnly = false, allowRemove = false }) {
   const [photo, setPhoto] = useState(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -63,6 +63,24 @@ export default function ProfilePhoto({ path, label, fallback, size, readOnly = f
     }
   }
 
+  async function removePhoto() {
+    if (saving) return;
+    setSaving(true);
+    setMessage('');
+    try {
+      await api.delete(path);
+      revision.current += 1;
+      setPhoto(null);
+      setError(false);
+      setMessage('Foto removida.');
+    } catch (failure) {
+      setError(true);
+      setMessage(failure.message || 'Não foi possível remover a foto.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <View style={styles.container}>
       {photo ? (
@@ -86,6 +104,17 @@ export default function ProfilePhoto({ path, label, fallback, size, readOnly = f
               {saving ? 'Salvando foto…' : photo ? 'Trocar foto' : 'Adicionar foto'}
             </Text>
           </Pressable>
+          {allowRemove && photo && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remover ${label.toLowerCase()}`}
+              disabled={saving}
+              onPress={removePhoto}
+              style={styles.button}
+            >
+              <Text style={[styles.buttonText, styles.removeText]}>Remover foto</Text>
+            </Pressable>
+          )}
           {!!message && (
             <Text accessibilityLiveRegion="polite" style={[styles.message, error && styles.error]}>
               {message}
@@ -101,6 +130,7 @@ const styles = StyleSheet.create({
   container: { alignItems: 'center' },
   button: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
   buttonText: { color: colors.primary, fontWeight: '600' },
+  removeText: { color: colors.textMuted },
   message: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
   error: { color: colors.primary },
 });

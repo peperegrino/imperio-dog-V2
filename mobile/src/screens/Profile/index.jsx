@@ -198,6 +198,7 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.identityCenter}>
             <ProfilePhoto
               path="/account/me/photo"
+              allowRemove
               label="Foto de perfil"
               size={96}
               fallback={<ProfileAvatar />}
