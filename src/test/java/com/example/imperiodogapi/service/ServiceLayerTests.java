@@ -167,6 +167,30 @@ private com.example.imperiodogapi.repository.ChargeRepository chargeRepository;
     }
 
     @Test
+    void petServiceShouldPreserveUnchangedFieldsDuringPartialUpdate() {
+        Customer customer = Customer.builder().id(7L).build();
+        Pet pet = Pet.builder()
+                .id(15L)
+                .name("Luna")
+                .species("Cachorro")
+                .breed("SRD")
+                .sex("Fêmea")
+                .customer(customer)
+                .build();
+
+        when(petRepository.findLockedById(15L)).thenReturn(Optional.of(pet));
+        when(petRepository.save(any(Pet.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PetRequestDTO request = new PetRequestDTO("Mel", null, null, null, null, null, null, null);
+        PetResponseDTO updated = petService.update(15L, request);
+
+        assertEquals("Mel", updated.name());
+        assertEquals("Cachorro", updated.species());
+        assertEquals("SRD", updated.breed());
+        assertEquals("Fêmea", updated.sex());
+    }
+
+    @Test
     void serviceEntityServiceShouldCreateAndReturnService() {
         ServiceRequestDTO request = new ServiceRequestDTO("Banho e tosa", "Completo", new BigDecimal("89.90"));
 

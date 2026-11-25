@@ -29,6 +29,9 @@ public class PetService {
 
     @Transactional
     public PetResponseDTO create(PetRequestDTO request) {
+        if (request.name() == null || request.name().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o nome do pet");
+        }
         if (request.customerId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Select a customer");
         Customer customer = getCustomer(request.customerId());
         Pet pet = Pet.builder()
@@ -53,17 +56,25 @@ public class PetService {
 
     @Transactional
     public PetResponseDTO update(Long id, PetRequestDTO request) {
-        if (request.customerId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Select a customer");
         Pet pet = petRepository.findLockedById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found"));
-        if (!pet.getCustomer().getId().equals(request.customerId()) && chargeRepository.existsByPetId(id)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "A pet with charge history cannot change customer");
+
+        if (request.customerId() != null) {
+            if (!pet.getCustomer().getId().equals(request.customerId()) && chargeRepository.existsByPetId(id)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "A pet with charge history cannot change customer");
+            }
+            pet.setCustomer(getCustomer(request.customerId()));
         }
-        pet.setName(request.name().trim());
-        pet.setSpecies(request.species());
-        pet.setBreed(request.breed());
-        pet.setSex(request.sex()); pet.setBirthDate(request.birthDate()); pet.setWeight(request.weight()); pet.setNotes(request.notes());
-        pet.setCustomer(getCustomer(request.customerId()));
+        if (request.name() != null) {
+            if (request.name().isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o nome do pet");
+            pet.setName(request.name().trim());
+        }
+        if (request.species() != null) pet.setSpecies(request.species());
+        if (request.breed() != null) pet.setBreed(request.breed());
+        if (request.sex() != null) pet.setSex(request.sex());
+        if (request.birthDate() != null) pet.setBirthDate(request.birthDate());
+        if (request.weight() != null) pet.setWeight(request.weight());
+        if (request.notes() != null) pet.setNotes(request.notes());
         return toDto(petRepository.save(pet));
     }
 
