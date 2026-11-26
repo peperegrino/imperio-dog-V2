@@ -104,6 +104,7 @@ export default function ProfilePhoto({ path, label, fallback, size, readOnly = f
               {saving ? 'Salvando foto…' : photo ? 'Trocar foto' : 'Adicionar foto'}
             </Text>
           </Pressable>
+          <Text style={styles.photoHint}>JPG ou PNG • Até 4 MB</Text>
           {allowRemove && photo && (
             <Pressable
               accessibilityRole="button"
@@ -132,5 +133,22 @@ const styles = StyleSheet.create({
   buttonText: { color: colors.primary, fontWeight: '600' },
   removeText: { color: colors.textMuted },
   message: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
-  error: { color: colors.primary },
+  
+  photoHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  error: {
+    color: '#722F37',
+    backgroundColor: '#FAF0F0',
+    borderColor: '#DCC7C9',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
+    maxWidth: 320,
+    lineHeight: 20,
+  },
 });
