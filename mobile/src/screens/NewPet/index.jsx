@@ -138,7 +138,7 @@ export default function NewPetScreen({ navigation, route }) {
   const { session } = useAuth();
   const admin = session.role === 'ADMIN';
   const customers = useResource(admin ? '/admin/customers' : '/account/me');
-  const [customerId, setCustomerId] = useState(null);
+  const [customerId, setCustomerId] = useState(pet?.customerId ?? null);
   const [saving, setSaving] = useState(false);
   const [values, setValues] = useState(
   pet ? {
@@ -190,7 +190,7 @@ export default function NewPetScreen({ navigation, route }) {
   weight: values.weight.trim() ? Number(values.weight.replace(',', '.')) : null,
 };
 
-if (editing && !admin) {
+if (editing) {
   const changed = {};
   const originalBirthDate = pet.birthDate ? pet.birthDate.split('-').reverse().join('/') : '';
   const originalWeight = pet.weight == null ? '' : String(pet.weight);
@@ -201,11 +201,12 @@ if (editing && !admin) {
   if (values.birthDate !== originalBirthDate) changed.birthDate = payload.birthDate;
   if (values.weight !== originalWeight) changed.weight = payload.weight;
   if (values.notes !== (pet.notes || '')) changed.notes = values.notes;
-  await api.put(`/account/pets/${pet.id}`, changed);
+  await api.put((admin ? '/admin/pets/' : '/account/pets/') + pet.id, changed);
 } else {
   await api.post(admin ? '/admin/pets' : '/account/pets', payload);
 }
-      navigation.replace('Pets');
+      if (editing && admin && navigation.canGoBack()) navigation.goBack();
+      else navigation.replace('Pets');
     } catch (error) {
       setSubmissionMessage(error.message);
     } finally {
@@ -310,7 +311,7 @@ if (editing && !admin) {
               </View>
             </View>
 
-            {admin && (
+            {admin && !editing && (
               <>
                 <ResourceState resource={customers} />
                 <Choose label="Tutor responsável" items={customers.data || []}

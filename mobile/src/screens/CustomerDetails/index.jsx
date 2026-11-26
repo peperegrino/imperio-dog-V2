@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import { Action, Card, date, Field, Message, money, Page, ResourceState, statusLabel, useResource } from '../../components/ConnectedUI';
 import { api } from '../../services/api';
 import { styles } from './styles';
@@ -22,6 +22,36 @@ export default function CustomerDetailsScreen({ navigation, route }) {
   const customerCharges = (Array.isArray(charges.data) ? charges.data : [])
     .filter((charge) => String(charge.customerId) === String(customerId));
   const loading = customers.loading || pets.loading || charges.loading;
+
+  const [petError, setPetError] = useState('');
+  const [removing, setRemoving] = useState(false);
+
+
+  async function deletePet(pet) {
+    if (removing) return;
+    setRemoving(true);
+    setPetError('');
+    try {
+      await api.delete('/admin/pets/' + pet.id);
+      await pets.reload();
+    } catch (error) {
+      setPetError(error.message || 'Nao foi possivel remover o pet.');
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  function confirmDelete(pet) {
+    const message = 'Deseja remover ' + pet.name + '?';
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) deletePet(pet);
+    } else {
+      Alert.alert('Remover pet', message, [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Remover', style: 'destructive', onPress: () => deletePet(pet) }
+      ]);
+    }
+  }
 
   function startEditing() {
     if (!customer) return;
@@ -132,6 +162,7 @@ export default function CustomerDetailsScreen({ navigation, route }) {
       {!pets.loading && !pets.error && customerPets.length === 0 ? (
         <Card><Message>Nenhum pet associado a este cliente nos dados disponíveis.</Message></Card>
       ) : null}
+      {petError ? <Message>{petError}</Message> : null}
       {customerPets.map((pet) => (
         <Card key={pet.id}>
           <Text style={styles.itemTitle}>{pet.name || 'Pet sem nome'}</Text>
@@ -141,6 +172,8 @@ export default function CustomerDetailsScreen({ navigation, route }) {
           {pet.birthDate ? <Detail label="Nascimento" value={date(pet.birthDate)} /> : null}
           {pet.weight != null ? <Detail label="Peso" value={`${pet.weight} kg`} /> : null}
           {pet.notes ? <Text style={styles.notes}>{pet.notes}</Text> : null}
+          <Action title="Editar pet" onPress={() => navigation.navigate('NewPet', { pet })} />
+          <Action title="Remover pet" disabled={removing} onPress={() => confirmDelete(pet)} />
         </Card>
       ))}
 
