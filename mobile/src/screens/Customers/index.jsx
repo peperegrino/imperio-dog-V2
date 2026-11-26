@@ -140,8 +140,9 @@ function validate(values) {
   if (!values.city.trim()) errors.city = 'Informe a cidade.';
   else if (values.city.trim().length > 40) errors.city = 'Use no máximo 40 caracteres.';
   if (!/^[A-Za-z]{2}$/.test(values.federalUnit.trim())) errors.federalUnit = 'Informe a UF com duas letras.';
-  if (!values.petName.trim()) errors.petName = 'Informe o nome do pet.';
-  if (!values.breed.trim()) errors.breed = 'Informe a raça.';
+  const hasPet = Boolean(values.petName.trim() || values.breed.trim());
+  if (hasPet && !values.petName.trim()) errors.petName = 'Informe o nome do pet.';
+  if (hasPet && !values.breed.trim()) errors.breed = 'Informe a raça.';
   return errors;
 }
 
@@ -211,8 +212,11 @@ export default function CustomersScreen({ navigation, route }) {
     setErrors(nextErrors);
     setSubmitNotice('');
 
-    const firstInvalid = [...requiredFields,
-      { key: 'petName' }, { key: 'breed' }].find((field) => nextErrors[field.key]);
+    const hasPet = Boolean(values.petName.trim() || values.breed.trim());
+    const fieldsToValidate = hasPet
+      ? [...requiredFields, { key: 'petName' }, { key: 'breed' }]
+      : requiredFields;
+    const firstInvalid = fieldsToValidate.find((field) => nextErrors[field.key]);
     if (firstInvalid) {
       inputRefs.current[firstInvalid.key]?.focus();
       return;
@@ -231,7 +235,7 @@ export default function CustomersScreen({ navigation, route }) {
       }
       setValues(initialValues);
       setAttemptedSubmit(false);
-      setSubmitNotice('Cadastro salvo.');
+      setSubmitNotice(petName.trim() ? 'Cliente e pet cadastrados.' : 'Cliente cadastrado.');
     } catch (error) {
       setSubmitNotice(error.message);
     } finally {
@@ -286,7 +290,7 @@ export default function CustomersScreen({ navigation, route }) {
             />
             <Text style={styles.pageTitle}>Cadastrar Novo Cliente</Text>
             <Text style={styles.introDescription}>
-              Adicione um tutor e seu pet ao sistema do resort.
+              Cadastre um tutor. Os dados do pet podem ser adicionados agora ou depois.
             </Text>
           </View>
 
@@ -321,6 +325,7 @@ export default function CustomersScreen({ navigation, route }) {
               <Text style={styles.cardTitle}>Dados do Pet</Text>
             </View>
             <View style={styles.divider} />
+            <Text style={styles.petProfileDescription}>Opcional. Preencha os dois campos para cadastrar um pet junto com o tutor.</Text>
             <View style={styles.petProfile}>
               <View style={styles.petIllustration}><ScreenIcon name="rabbit" size={38} /></View>
               <View style={styles.petProfileText}>
@@ -329,7 +334,7 @@ export default function CustomersScreen({ navigation, route }) {
               </View>
             </View>
             <FormField
-              field={{ key: 'petName', label: 'Nome do Pet', placeholder: 'ex: Thor', icon: 'pet', required: true }}
+              field={{ key: 'petName', label: 'Nome do Pet', placeholder: 'ex: Thor', icon: 'pet' }}
               value={values.petName}
               onChangeText={(value) => updateField('petName', value)}
               error={errors.petName}
@@ -337,7 +342,7 @@ export default function CustomersScreen({ navigation, route }) {
               onSubmitEditing={() => inputRefs.current.breed?.focus()}
             />
             <FormField
-              field={{ key: 'breed', label: 'Raça', placeholder: 'ex: Golden Retriever', icon: 'pet', required: true }}
+              field={{ key: 'breed', label: 'Raça', placeholder: 'ex: Golden Retriever', icon: 'pet' }}
               value={values.breed}
               onChangeText={(value) => updateField('breed', value)}
               error={errors.breed}

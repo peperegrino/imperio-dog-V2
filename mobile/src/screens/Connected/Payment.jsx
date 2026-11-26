@@ -89,6 +89,23 @@ export default function Payment({ navigation, route }) {
     );
   }
 
+  if (c.issuanceState !== "ISSUED") {
+    return (
+      <Page title="Detalhes da cobrança" navigation={navigation}>
+        <Card>
+          <Message>Boleto não confirmado</Message>
+          <Message>Não há confirmação de emissão deste boleto. Nenhuma instrução de pagamento foi exibida.</Message>
+          <Message>Tutor: {c.customerName || "—"}</Message>
+          <Message>Pet: {c.petName || "—"}</Message>
+          <Message>Status: {statusLabel[c.status] || c.status || "—"}</Message>
+          <Message>Vencimento: {date(c.dueDate)}</Message>
+          <Message>Valor: {money(c.amount)}</Message>
+        </Card>
+        <Action title="Voltar às cobranças" onPress={backToCharges} />
+      </Page>
+    );
+  }
+
   return (
     <PagamentoScreen
       data={{

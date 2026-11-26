@@ -19,8 +19,8 @@ export default function ProfilePhoto({ path, label, fallback, size, readOnly = f
   useFocusEffect(useCallback(() => {
     let active = true;
     const currentRevision = revision.current;
-    api.get(path).then(({ data }) => {
-      if (active && currentRevision === revision.current) setPhoto(data);
+    api.get(path).then((response) => {
+      if (active && currentRevision === revision.current) setPhoto(response?.data || null);
     }).catch(() => {
       if (active && currentRevision === revision.current && !readOnly) {
         setError(true);
@@ -48,9 +48,9 @@ export default function ProfilePhoto({ path, label, fallback, size, readOnly = f
       setSaving(true);
       setMessage('');
       try {
-        const { data } = await api.put(path, { base64 });
+        const response = await api.put(path, { base64 });
         revision.current += 1;
-        setPhoto(data);
+        setPhoto(response?.data || null);
         setError(false);
         setMessage('Foto atualizada.');
       } finally {

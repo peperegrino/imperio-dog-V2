@@ -231,12 +231,16 @@ export default function AdminScreen({ navigation }) {
   );
 
   const summary = useMemo(() => calculateSummary(charges, nowMs), [charges, nowMs]);
-  const paidCount = useMemo(() => charges.filter((charge) => String(charge?.status || '').toUpperCase() === 'PAID').length, [charges]);
-  const pendingCount = useMemo(() => charges.filter((charge) => ['PENDING', 'PAYMENT_IN_PROCESS'].includes(String(charge?.status || '').toUpperCase())).length, [charges]);
-  const overdueCount = useMemo(() => charges.filter((charge) => String(charge?.status || '').toUpperCase() === 'OVERDUE').length, [charges]);
+  const financialCharges = useMemo(
+    () => charges.filter((charge) => charge.issuanceState !== 'SIMULATED'),
+    [charges],
+  );
+  const paidCount = useMemo(() => financialCharges.filter((charge) => String(charge?.status || '').toUpperCase() === 'PAID').length, [financialCharges]);
+  const pendingCount = useMemo(() => financialCharges.filter((charge) => ['PENDING', 'PAYMENT_IN_PROCESS'].includes(String(charge?.status || '').toUpperCase())).length, [financialCharges]);
+  const overdueCount = useMemo(() => financialCharges.filter((charge) => String(charge?.status || '').toUpperCase() === 'OVERDUE').length, [financialCharges]);
   const upcomingCount = useMemo(
-    () => charges.filter((charge) => isUpcomingCharge(charge, nowMs)).length,
-    [charges, nowMs],
+    () => financialCharges.filter((charge) => isUpcomingCharge(charge, nowMs)).length,
+    [financialCharges, nowMs],
   );
 
   const summaryCards = useMemo(() => [
