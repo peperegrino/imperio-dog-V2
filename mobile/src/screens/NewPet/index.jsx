@@ -1,3 +1,4 @@
+import StandardBackIcon from '../../components/StandardBackIcon';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -299,7 +300,7 @@ if (editing) {
             onPress={cancel}
             style={styles.headerBack}
           >
-            <Text style={styles.backMark}>←</Text>
+            <StandardBackIcon />
           </Pressable>
           <Text style={styles.headerTitle}>
   {editing ? 'Editar Pet' : 'Novo Pet'}

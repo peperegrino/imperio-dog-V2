@@ -1,3 +1,4 @@
+import StandardBackIcon from '../../components/StandardBackIcon';
 /**
  * Tela "Pagamento" — Império Dog Resort
  * Figma: node-id 86:1490 (frame de 390px de largura)
@@ -29,7 +30,6 @@ import {
 
 import { colors, fonts, shadows } from './theme';
 import {
-  backArrowXml,
   copySmallXml,
   copyWhiteXml,
   eyeXml,
@@ -301,7 +301,7 @@ export default function PagamentoScreen({
               onPress={onBack}
               style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
             >
-              <Icon xml={backArrowXml} frameW={16} frameH={16} svgW={16} svgH={16} />
+              <StandardBackIcon />
             </Pressable>
             <Text style={styles.headerTitle}>Pagamento</Text>
           </View>

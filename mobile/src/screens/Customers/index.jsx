@@ -1,3 +1,4 @@
+import StandardBackIcon from '../../components/StandardBackIcon';
 import { useRef, useState } from 'react';
 import {
   Image,
@@ -258,7 +259,7 @@ export default function CustomersScreen({ navigation, route }) {
             style={styles.headerButton}
             hitSlop={8}
           >
-            <ScreenIcon name="back" size={21} color={colors.textMuted} />
+            <StandardBackIcon />
           </Pressable>
           <Text style={styles.headerTitle}>Painel Admin</Text>
           <Pressable

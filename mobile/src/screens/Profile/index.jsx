@@ -1,3 +1,4 @@
+import StandardBackIcon from '../../components/StandardBackIcon';
 import { useState } from 'react';
 import {
   Pressable,
@@ -174,7 +175,7 @@ export default function ProfileScreen({ navigation }) {
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={navigateBack} style={styles.headerBack}>
-          <ProfileIcon name="back" size={20} color="#1A1C1C" />
+          <StandardBackIcon />
         </Pressable>
         <Text style={styles.headerTitle}>Perfil</Text>
         <View style={styles.headerActions}>

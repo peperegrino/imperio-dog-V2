@@ -1,3 +1,4 @@
+import StandardBackIcon from '../../components/StandardBackIcon';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -63,7 +64,7 @@ export default function CustomerChargesScreen({ navigation }) {
       <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Admin')} style={styles.backButton}>
-          <Text style={styles.backMark}>←</Text>
+          <StandardBackIcon />
         </Pressable>
         <Text style={styles.headerTitle}>Faturas</Text>
         <View style={styles.headerSpacer} />

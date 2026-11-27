@@ -1,3 +1,4 @@
+import StandardBackIcon from '../../components/StandardBackIcon';
 import { useState } from 'react';
 import { api } from '../../services/api';
 import { Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
@@ -59,7 +60,7 @@ const removePet = async () => {
           onPress={goBack}
           style={styles.backButton}
         >
-          <Text style={styles.backMark}>←</Text>
+          <StandardBackIcon />
         </Pressable>
         <Text style={styles.headerTitle}>{admin ? 'Pets' : 'Meus Pets'}</Text>
         <ProfileButton

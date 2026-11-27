@@ -1,3 +1,4 @@
+import StandardBackIcon from '../../components/StandardBackIcon';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -206,7 +207,7 @@ export default function ServicesScreen({ navigation, route }) {
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={handleBack} style={styles.backButton}>
-          <Icon name="back" size={23} color="#1A1C1C" />
+          <StandardBackIcon />
         </Pressable>
         <Text style={styles.headerTitle}>Serviços e preços</Text>
         <View style={styles.headerActions}>

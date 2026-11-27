@@ -1,3 +1,4 @@
+import StandardBackIcon from '../../components/StandardBackIcon';
 import { useState } from 'react';
 import { Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -115,7 +116,7 @@ export default function HistoryScreen({ navigation }) {
           onPress={goBack}
           style={styles.backButton}
         >
-          <Text style={styles.backMark}>←</Text>
+          <StandardBackIcon />
         </Pressable>
         <Text style={styles.headerTitle}>Histórico</Text>
         <ProfileButton
