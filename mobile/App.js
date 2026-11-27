@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -6,6 +7,13 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import Navigation from './src/navigation';
 
 export default function App() {
+  const [introFinished, setIntroFinished] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIntroFinished(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const [fontsLoaded] = useFonts({
     PlusJakartaSans_400Regular: require(
       '@expo-google-fonts/plus-jakarta-sans/400Regular/PlusJakartaSans_400Regular.ttf',
@@ -21,7 +29,7 @@ export default function App() {
     ),
   });
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !introFinished) {
     return <FontLoading />;
   }
 
