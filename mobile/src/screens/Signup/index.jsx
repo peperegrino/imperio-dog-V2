@@ -43,6 +43,8 @@ export default function SignupScreen({ navigation }) {
   const clearError = key => setErrors(previous => ({ ...previous, [key]: undefined, form: undefined }));
   const [address, setAddress] = useState({});
   const [cities, setCities] = useState([]);
+  const [ufOpen, setUfOpen] = useState(false);
+  const states = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
   const [cityOpen, setCityOpen] = useState(false);
   const [cityError, setCityError] = useState(false);
 
@@ -67,9 +69,10 @@ export default function SignupScreen({ navigation }) {
 
   const normalize = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-  const matchingCities = (address.city || '').length >= 2
-    ? cities.filter(city => normalize(city.name).includes(normalize(address.city))).slice(0, 12)
-    : [];
+  const matchingCities = cities.filter(city =>
+    (!address.federalUnit || city.uf === address.federalUnit) &&
+    normalize(city.name).includes(normalize(address.city))
+  ).slice(0, 20);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -111,12 +114,17 @@ export default function SignupScreen({ navigation }) {
     if (key === 'zipCode') {
       value = value.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
     }
-    if (key === 'federalUnit') value = value.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2);
+    if (key === 'federalUnit') {
+      value = value.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2);
+      setUfOpen(true);
+      setAddress(previous => ({ ...previous, federalUnit: value, city: '' }));
+      return;
+    }
     if (key === 'streetNumber') value = value.replace(/\D/g, '').slice(0, 7);
 
     if (key === 'city') {
       setCityOpen(true);
-      setAddress(previous => ({ ...previous, city: value, federalUnit: '' }));
+      setAddress(previous => ({ ...previous, city: value }));
       return;
     }
     setAddress(previous => ({ ...previous, [key]: value }));
@@ -279,11 +287,33 @@ export default function SignupScreen({ navigation }) {
                 <Input error={errors[key]} label={label} value={address[key] || ''}
                   keyboardType={['phone', 'cpf', 'zipCode', 'streetNumber'].includes(key) ? 'number-pad' : 'default'}
                   onChangeText={(value) => updateAddress(key, value)} />
+                {key === 'federalUnit' && (
+                  <Pressable onPress={() => setUfOpen(!ufOpen)} style={{ paddingVertical: 8 }}>
+                    <Text style={{ color: '#722F37', fontSize: 12 }}>Selecionar UF</Text>
+                  </Pressable>
+                )}
+                {key === 'federalUnit' && ufOpen && states.map(uf => (
+                  <Pressable key={uf} onPress={() => {
+                    setAddress(previous => ({ ...previous, federalUnit: uf, city: previous.federalUnit === uf ? previous.city : '' }));
+                    clearError('federalUnit');
+                    setUfOpen(false);
+                    setCityOpen(true);
+                  }} style={{ padding: 10, borderBottomWidth: 1, borderColor: '#E8DED5' }}>
+                    <Text style={{ color: '#722F37' }}>{uf}</Text>
+                  </Pressable>
+                ))}
+                {key === 'city' && (
+                  <Pressable onPress={() => setCityOpen(!cityOpen)} style={{ paddingVertical: 8 }}>
+                    <Text style={{ color: '#722F37', fontSize: 12 }}>Selecionar cidade</Text>
+                  </Pressable>
+                )}
                 {key === 'city' && cityOpen && matchingCities.map(city => (
                   <Pressable key={city.id}
                     onPress={() => {
                       setAddress(previous => ({ ...previous, city: city.name, federalUnit: city.uf }));
                       setCityOpen(false);
+                      clearError('city');
+                      clearError('federalUnit');
                     }}
                     style={{ padding: 12, borderBottomWidth: 1, borderColor: '#E8DED5', backgroundColor: '#FAF8F5' }}>
                     <Text style={{ color: '#722F37' }}>{city.name} - {city.uf}</Text>
@@ -309,11 +339,33 @@ export default function SignupScreen({ navigation }) {
                 <Input error={errors[key]} label={label} value={address[key] || ''}
                   keyboardType={['phone', 'cpf', 'zipCode', 'streetNumber'].includes(key) ? 'number-pad' : 'default'}
                   onChangeText={(value) => updateAddress(key, value)} />
+                {key === 'federalUnit' && (
+                  <Pressable onPress={() => setUfOpen(!ufOpen)} style={{ paddingVertical: 8 }}>
+                    <Text style={{ color: '#722F37', fontSize: 12 }}>Selecionar UF</Text>
+                  </Pressable>
+                )}
+                {key === 'federalUnit' && ufOpen && states.map(uf => (
+                  <Pressable key={uf} onPress={() => {
+                    setAddress(previous => ({ ...previous, federalUnit: uf, city: previous.federalUnit === uf ? previous.city : '' }));
+                    clearError('federalUnit');
+                    setUfOpen(false);
+                    setCityOpen(true);
+                  }} style={{ padding: 10, borderBottomWidth: 1, borderColor: '#E8DED5' }}>
+                    <Text style={{ color: '#722F37' }}>{uf}</Text>
+                  </Pressable>
+                ))}
+                {key === 'city' && (
+                  <Pressable onPress={() => setCityOpen(!cityOpen)} style={{ paddingVertical: 8 }}>
+                    <Text style={{ color: '#722F37', fontSize: 12 }}>Selecionar cidade</Text>
+                  </Pressable>
+                )}
                 {key === 'city' && cityOpen && matchingCities.map(city => (
                   <Pressable key={city.id}
                     onPress={() => {
                       setAddress(previous => ({ ...previous, city: city.name, federalUnit: city.uf }));
                       setCityOpen(false);
+                      clearError('city');
+                      clearError('federalUnit');
                     }}
                     style={{ padding: 12, borderBottomWidth: 1, borderColor: '#E8DED5', backgroundColor: '#FAF8F5' }}>
                     <Text style={{ color: '#722F37' }}>{city.name} - {city.uf}</Text>
