@@ -13,7 +13,7 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LogoHeader from '../../components/LogoHeader';
 import { api } from '../../services/api';
-import { showAlert, showConfirm } from '../../utils/alert';
+import { showConfirm } from '../../utils/alert';
 import { styles } from './styles';
 
 const addressFields = [
@@ -39,6 +39,8 @@ function isValidCpf(value) {
 }
 
 export default function SignupScreen({ navigation }) {
+  const [errors, setErrors] = useState({});
+  const clearError = key => setErrors(previous => ({ ...previous, [key]: undefined, form: undefined }));
   const [address, setAddress] = useState({});
   const [cities, setCities] = useState([]);
   const [cityOpen, setCityOpen] = useState(false);
@@ -93,6 +95,7 @@ export default function SignupScreen({ navigation }) {
   }
 
   async function updateAddress(key, value) {
+    clearError(key);
     if (key === 'cpf') {
       value = value.replace(/\D/g, '').slice(0, 11)
         .replace(/^(\d{3})(\d)/, '$1.$2')
@@ -142,60 +145,36 @@ export default function SignupScreen({ navigation }) {
     }
 
     const normalizedEmail = email.trim();
-    if (!name.trim() || !normalizedEmail || !password || !confirmPassword) {
-      showAlert('Confira seus dados', 'Preencha todos os campos para continuar.');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      showAlert('E-mail inválido', 'Digite um endereço de e-mail válido.');
-      return;
-    }
-
-    if (normalizedEmail.length > 200) {
-      showAlert('E-mail inválido', 'Use no máximo 200 caracteres.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      showAlert('Senhas diferentes', 'Confira se as duas senhas foram digitadas corretamente.');
-      return;
-    }
-
-    if (password.length < 12 || password.length > 72) {
-      showAlert('Senha inválida', 'A senha deve ter entre 12 e 72 caracteres.');
-      return;
-    }
-
-    if (name.trim().length > 40) {
-      showAlert('Nome inválido', 'Use no máximo 40 caracteres.');
-      return;
-    }
-
+    const next = {};
     const phoneDigits = String(address.phone || '').replace(/\D/g, '');
-    if (![10, 11].includes(phoneDigits.length)) {
-      showAlert('Telefone inválido', 'Informe um telefone com DDD.');
-      return;
-    }
 
-    if (!isValidCpf(address.cpf)) {
-      showAlert('CPF inválido', 'Informe um CPF válido.');
-      return;
-    }
+    if (!name.trim() || name.trim().length > 40)
+      next.name = 'Informe seu nome (ate 40 caracteres).';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || normalizedEmail.length > 200)
+      next.email = 'Informe um e-mail valido.';
+    if (password.length < 12 || password.length > 72)
+      next.password = 'Use entre 12 e 72 caracteres.';
+    if (!confirmPassword || password !== confirmPassword)
+      next.confirmPassword = 'As senhas devem ser iguais.';
+    if (![10, 11].includes(phoneDigits.length))
+      next.phone = 'Informe o telefone com DDD.';
+    if (!isValidCpf(address.cpf))
+      next.cpf = 'CPF invalido. Confira os numeros.';
+    if (!/^\d{8}$/.test(String(address.zipCode || '').replace(/\D/g, '')))
+      next.zipCode = 'Informe os 8 digitos do CEP.';
+    if (!address.streetName?.trim() || address.streetName.trim().length > 33)
+      next.streetName = 'Informe a rua (ate 33 caracteres).';
+    if (!/^\d{1,7}$/.test(String(address.streetNumber || '').trim()))
+      next.streetNumber = 'Informe o numero.';
+    if (!address.neighborhood?.trim() || address.neighborhood.trim().length > 100)
+      next.neighborhood = 'Informe o bairro.';
+    if (!address.city?.trim() || address.city.trim().length > 40)
+      next.city = 'Informe a cidade.';
+    if (!/^[A-Za-z]{2}$/.test(String(address.federalUnit || '').trim()))
+      next.federalUnit = 'Informe a UF.';
 
-    if (!/^\d{8}$/.test(String(address.zipCode || '').replace(/\D/g, ''))) {
-      showAlert('CEP inválido', 'Informe um CEP com 8 dígitos.');
-      return;
-    }
-
-    if (!address.streetName?.trim() || address.streetName.trim().length > 33
-      || !/^\d{1,7}$/.test(String(address.streetNumber || '').trim())
-      || !address.neighborhood?.trim() || address.neighborhood.trim().length > 100
-      || !address.city?.trim() || address.city.trim().length > 40
-      || !/^[A-Za-z]{2}$/.test(String(address.federalUnit || '').trim())) {
-      showAlert('Endereço incompleto', 'Confira rua, número, bairro, cidade e UF.');
-      return;
-    }
+    setErrors(next);
+    if (Object.keys(next).length) return;
 
     setIsSubmitting(true);
     try {
@@ -213,7 +192,16 @@ export default function SignupScreen({ navigation }) {
         routes: [{ name: 'Login', params: { registrationComplete: true } }],
       });
     } catch (error) {
-      showAlert('Não foi possível criar a conta', error.message || 'Tente novamente mais tarde.');
+      const message = error.message || 'Tente novamente mais tarde.';
+      const normalized = message.toLowerCase();
+      const duplicate = error.status === 409 || /cadastrad|duplicad|existente|em uso/.test(normalized);
+      if (duplicate && normalized.includes('cpf')) {
+        setErrors({ cpf: 'Este CPF ja possui cadastro.' });
+      } else if (duplicate && /email|e-mail/.test(normalized)) {
+        setErrors({ email: 'Este e-mail ja possui cadastro.' });
+      } else {
+        setErrors({ form: message });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -242,7 +230,8 @@ export default function SignupScreen({ navigation }) {
               <Input
                 label="Nome completo"
                 value={name}
-                onChangeText={setName}
+                error={errors.name}
+                onChangeText={value => { setName(value); clearError("name"); }}
                 placeholder="Digite seu nome"
                 autoCapitalize="words"
               />
@@ -251,7 +240,8 @@ export default function SignupScreen({ navigation }) {
               <Input
                 label="E-mail"
                 value={email}
-                onChangeText={setEmail}
+                error={errors.email}
+                onChangeText={value => { setEmail(value); clearError("email"); }}
                 placeholder="ex: mariana@exemplo.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -261,7 +251,8 @@ export default function SignupScreen({ navigation }) {
               <Input
                 label="Senha"
                 value={password}
-                onChangeText={setPassword}
+                error={errors.password}
+                onChangeText={value => { setPassword(value); clearError("password"); }}
                 placeholder="Crie uma senha"
                 secureTextEntry={!showPassword}
                 onToggleSecure={() => setShowPassword((visible) => !visible)}
@@ -271,7 +262,8 @@ export default function SignupScreen({ navigation }) {
               <Input
                 label="Confirmar senha"
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                error={errors.confirmPassword}
+                onChangeText={value => { setConfirmPassword(value); clearError("confirmPassword"); }}
                 placeholder="Digite a senha novamente"
                 secureTextEntry={!showConfirmPassword}
                 onToggleSecure={() => setShowConfirmPassword((visible) => !visible)}
@@ -284,7 +276,7 @@ export default function SignupScreen({ navigation }) {
   <View key={index} style={styles.fieldRow}>
     {group.map(([key, label]) => (
               <View key={key} style={[styles.field, { flex: key === 'federalUnit' ? 0.35 : key === 'zipCode' || key === 'streetNumber' ? 0.65 : 1, minWidth: 0 }]}>
-                <Input label={label} value={address[key] || ''}
+                <Input error={errors[key]} label={label} value={address[key] || ''}
                   keyboardType={['phone', 'cpf', 'zipCode', 'streetNumber'].includes(key) ? 'number-pad' : 'default'}
                   onChangeText={(value) => updateAddress(key, value)} />
                 {key === 'city' && cityOpen && matchingCities.map(city => (
@@ -314,7 +306,7 @@ export default function SignupScreen({ navigation }) {
   <View key={index} style={styles.fieldRow}>
     {group.map(([key, label]) => (
               <View key={key} style={[styles.field, { flex: key === 'federalUnit' ? 0.35 : key === 'zipCode' || key === 'streetNumber' ? 0.65 : 1, minWidth: 0 }]}>
-                <Input label={label} value={address[key] || ''}
+                <Input error={errors[key]} label={label} value={address[key] || ''}
                   keyboardType={['phone', 'cpf', 'zipCode', 'streetNumber'].includes(key) ? 'number-pad' : 'default'}
                   onChangeText={(value) => updateAddress(key, value)} />
                 {key === 'city' && cityOpen && matchingCities.map(city => (
@@ -335,6 +327,7 @@ export default function SignupScreen({ navigation }) {
   </View>
 ))}
 
+{errors.form ? <Text accessibilityLiveRegion="polite" style={{ color: '#A63D40', padding: 12, marginTop: 16, backgroundColor: '#FCEEEE', borderRadius: 10 }}>{errors.form}</Text> : null}
 <View style={styles.submitButton}>
               <Button
                 label={isSubmitting ? 'Criando conta...' : 'Criar conta'}

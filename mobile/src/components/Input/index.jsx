@@ -13,6 +13,7 @@ export default function Input({
   autoCapitalize,
   secureTextEntry = false,
   onToggleSecure,
+  error,
 }) {
   return (
     <View style={styles.container}>
@@ -25,7 +26,7 @@ export default function Input({
           placeholder={placeholder}
           placeholderTextColor={styles.placeholder.color}
           secureTextEntry={secureTextEntry}
-          style={[styles.input, onToggleSecure && styles.inputWithIcon]}
+          style={[styles.input, onToggleSecure && styles.inputWithIcon, error && { borderWidth: 1, borderColor: '#A63D40' }]}
           value={value}
         />
         {onToggleSecure && (
@@ -43,6 +44,7 @@ export default function Input({
           </Pressable>
         )}
       </View>
+      {error ? <Text accessibilityLiveRegion="polite" style={{ color: '#A63D40', fontSize: 12, marginTop: 6 }}>{error}</Text> : null}
     </View>
   );
 }
