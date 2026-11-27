@@ -17,6 +17,52 @@ import { Choose, ResourceState, useResource } from '../../components/ConnectedUI
 import { colors } from '../../theme/colors';
 import { styles } from './styles';
 
+const dogBreeds = 'Akita,American Bully,Basset Hound,Beagle,Border Collie,Boxer,Bull Terrier,Bulldog Frances,Bulldog Ingles,Cane Corso,Chihuahua,Chow Chow,Cocker Spaniel,Collie,Dachshund,Dalmata,Dobermann,Dogo Argentino,Dogue Alemao,Fila Brasileiro,Golden Retriever,Husky Siberiano,Jack Russell Terrier,Labrador,Lhasa Apso,Lulu da Pomerania,Maltes,Mastiff,Pastor Alemao,Pastor Belga,Pastor Australiano,Pequines,Pinscher,Pitbull,Poodle,Pug,Rottweiler,Samoieda,Sao Bernardo,Schnauzer,Shar Pei,Shiba Inu,Shih Tzu,Spitz Alemao,Terra Nova,Weimaraner,Whippet,Yorkshire Terrier'.split(',');
+
+const catBreeds = 'Abissinio,Angora,Azul Russo,Bengal,Birmanes,Bombaim,British Shorthair,Burmese,Chartreux,Cornish Rex,Devon Rex,Exotico,Himalaio,Maine Coon,Manx,Munchkin,Noruegues da Floresta,Ocicat,Oriental,Persa,Ragdoll,Savannah,Scottish Fold,Siames,Siberiano,Somali,Sphynx,Tonquines,Van Turco'.split(',');
+
+function BreedSelector({ species, value, onChange, error }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const options = ['Sem raca definida (SRD)', ...(species === 'Gato' ? catBreeds : dogBreeds), 'Outra raca'];
+  const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const matches = options.filter(item => normalize(item).includes(normalize(query)));
+
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>Raça</Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled={!species}
+        onPress={() => { setQuery(''); setOpen(!open); }}
+        style={[styles.input, { justifyContent: 'center' }]}
+      >
+        <Text style={{ color: '#332522' }}>
+          {value || (species ? 'Selecionar raça' : 'Selecione a espécie primeiro')}
+        </Text>
+      </Pressable>
+      {open && species && (
+        <View style={{ marginTop: 8 }}>
+          <TextInput style={styles.input}
+            placeholder="Buscar raça..."
+            value={query}
+            onChangeText={setQuery}
+          />
+          {matches.slice(0, 15).map(item => (
+            <Pressable key={item}
+              onPress={() => { onChange(item); setOpen(false); }}
+              style={{ padding: 14, borderBottomWidth: 1, borderColor: '#E8DED5' }}>
+              <Text style={{ color: '#722F37' }}>{item}</Text>
+            </Pressable>
+          ))}
+          {!matches.length && <Text style={{ padding: 12 }}>Nenhuma raça encontrada.</Text>}
+        </View>
+      )}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </View>
+  );
+}
+
 const initialValues = {
   name: '',
   species: '',
@@ -54,19 +100,19 @@ function isValidBirthDate(value) {
     && date <= new Date();
 }
 
-function validate(values, editing = false) {
+function validate(values, editing = false, pet = null) {
   const errors = {};
 
   if (!values.name.trim()) errors.name = 'Informe o nome do pet.';
   if (!editing && !values.species) errors.species = 'Selecione a espécie.';
-  if (!editing && !values.breed.trim()) errors.breed = 'Informe a raça.';
+  if ((!editing || values.species !== (pet?.species || '')) && !values.breed.trim()) errors.breed = 'Informe a raça.';
   if (!editing && !values.sex) errors.sex = 'Selecione o sexo.';
   if (!editing && !values.birthDate.trim()) errors.birthDate = 'Informe a data de nascimento.';
-  else if (values.birthDate.trim() && !isValidBirthDate(values.birthDate.trim())) {
+  else if ((!editing || values.birthDate !== (pet?.birthDate?.split('-').reverse().join('/') || '')) && values.birthDate.trim() && !isValidBirthDate(values.birthDate.trim())) {
     errors.birthDate = 'Informe uma data valida, sem ultrapassar 30 anos.';
   }
 
-  if (values.weight.trim()) {
+  if (values.weight.trim() && (!editing || values.weight !== String(pet?.weight ?? '') || values.species !== (pet?.species || ''))) {
     const weight = Number(values.weight.replace(',', '.'));
     const maximum = values.species === 'Gato' ? 25 : 150;
     if (!Number.isFinite(weight) || weight < 0.05 || weight > maximum) {
@@ -183,17 +229,17 @@ export default function NewPetScreen({ navigation, route }) {
   const [submissionMessage, setSubmissionMessage] = useState('');
 
   const updateField = (key, value) => {
-    const nextValues = { ...values, [key]: value };
+    const nextValues = { ...values, [key]: value, ...(key === 'species' && value !== values.species ? { breed: '' } : {}) };
     setValues(nextValues);
     setSubmissionMessage('');
-    if (attemptedSubmit) setErrors(validate(nextValues, editing));
+    if (attemptedSubmit) setErrors(validate(nextValues, editing, pet));
   };
 
   const cancel = () => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Pets');
 
   const submit = async () => {
     if (saving) return;
-    const nextErrors = validate(values, editing);
+    const nextErrors = validate(values, editing, pet);
     setErrors(nextErrors);
     setAttemptedSubmit(true);
 
@@ -301,13 +347,12 @@ if (editing) {
               required={!editing}
               value={values.species}
             />
-            <FormField
-              field={fields[1]}
-              onChangeText={(value) => updateField('breed', value)}
-              value={values.breed}
-              error={errors.breed}
-              required={!editing}
-            />
+            <BreedSelector
+    species={values.species}
+    value={values.breed}
+    onChange={(value) => updateField('breed', value)}
+    error={errors.breed}
+  />
             <ChoiceField
               error={errors.sex}
               label="Sexo"

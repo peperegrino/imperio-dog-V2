@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -40,6 +40,34 @@ function isValidCpf(value) {
 
 export default function SignupScreen({ navigation }) {
   const [address, setAddress] = useState({});
+  const [cities, setCities] = useState([]);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [cityError, setCityError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome')
+      .then(response => {
+        if (!response.ok) throw new Error('IBGE');
+        return response.json();
+      })
+      .then(data => {
+        if (active) setCities(data.map(city => ({
+          id: city.id,
+          name: city.nome,
+          uf: city.microrregiao?.mesorregiao?.UF?.sigla ||
+              city['regiao-imediata']?.['regiao-intermediaria']?.UF?.sigla
+        })).filter(city => city.uf));
+      })
+      .catch(() => { if (active) setCityError(true); });
+    return () => { active = false; };
+  }, []);
+
+  const normalize = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  const matchingCities = (address.city || '').length >= 2
+    ? cities.filter(city => normalize(city.name).includes(normalize(address.city))).slice(0, 12)
+    : [];
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -83,6 +111,11 @@ export default function SignupScreen({ navigation }) {
     if (key === 'federalUnit') value = value.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2);
     if (key === 'streetNumber') value = value.replace(/\D/g, '').slice(0, 7);
 
+    if (key === 'city') {
+      setCityOpen(true);
+      setAddress(previous => ({ ...previous, city: value, federalUnit: '' }));
+      return;
+    }
     setAddress(previous => ({ ...previous, [key]: value }));
 
     if (key === 'zipCode' && value.length === 9) {
@@ -249,6 +282,19 @@ export default function SignupScreen({ navigation }) {
                 <Input label={label} value={address[key] || ''}
                   keyboardType={['phone', 'cpf', 'zipCode', 'streetNumber'].includes(key) ? 'number-pad' : 'default'}
                   onChangeText={(value) => updateAddress(key, value)} />
+                {key === 'city' && cityOpen && matchingCities.map(city => (
+                  <Pressable key={city.id}
+                    onPress={() => {
+                      setAddress(previous => ({ ...previous, city: city.name, federalUnit: city.uf }));
+                      setCityOpen(false);
+                    }}
+                    style={{ padding: 12, borderBottomWidth: 1, borderColor: '#E8DED5', backgroundColor: '#FAF8F5' }}>
+                    <Text style={{ color: '#722F37' }}>{city.name} - {city.uf}</Text>
+                  </Pressable>
+                ))}
+                {key === 'city' && cityError && (
+                  <Text style={{ color: '#722F37', marginTop: 8 }}>Informe a cidade e UF manualmente.</Text>
+                )}
               </View>
             ))}
             <View style={styles.submitButton}>

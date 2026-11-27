@@ -115,7 +115,8 @@ const removePet = async () => {
     }}
     style={{
       padding: 12,
-      marginTop: 8,
+      marginTop: 14,
+      marginBottom: 12,
       alignItems: 'center',
       borderWidth: 1,
       borderColor: '#722F37',
@@ -163,7 +164,7 @@ const removePet = async () => {
 )}
           </Card>
         ))}
-        <View style={styles.emptyCard}>
+        <View style={[styles.emptyCard, { marginTop: 24 }]}>
           <View style={styles.pawBadge}>
             <Text style={styles.paw}>✦</Text>
           </View>
