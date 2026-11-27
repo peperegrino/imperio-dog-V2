@@ -236,6 +236,7 @@ export default function SignupScreen({ navigation }) {
           <View style={styles.formCard}>
             <Text style={styles.title}>Criar conta</Text>
             <Text style={styles.description}>Preencha seus dados para começar.</Text>
+<Text style={styles.sectionTitle}>01 - Dados de acesso</Text>
 
             <View style={styles.field}>
               <Input
@@ -277,8 +278,12 @@ export default function SignupScreen({ navigation }) {
               />
             </View>
 
-            {addressFields.map(([key, label]) => (
-              <View key={key} style={styles.field}>
+            
+<Text style={styles.sectionTitle}>02 - Dados pessoais</Text>
+{[addressFields.slice(0, 2)].map((group, index) => (
+  <View key={index} style={styles.fieldRow}>
+    {group.map(([key, label]) => (
+              <View key={key} style={[styles.field, { flex: key === 'federalUnit' ? 0.35 : key === 'zipCode' || key === 'streetNumber' ? 0.65 : 1, minWidth: 0 }]}>
                 <Input label={label} value={address[key] || ''}
                   keyboardType={['phone', 'cpf', 'zipCode', 'streetNumber'].includes(key) ? 'number-pad' : 'default'}
                   onChangeText={(value) => updateAddress(key, value)} />
@@ -297,7 +302,40 @@ export default function SignupScreen({ navigation }) {
                 )}
               </View>
             ))}
-            <View style={styles.submitButton}>
+  </View>
+))}
+
+<Text style={styles.sectionTitle}>03 - Endereço</Text>
+{[
+  addressFields.slice(2, 4),
+  addressFields.slice(4, 6),
+  addressFields.slice(6, 8)
+].map((group, index) => (
+  <View key={index} style={styles.fieldRow}>
+    {group.map(([key, label]) => (
+              <View key={key} style={[styles.field, { flex: key === 'federalUnit' ? 0.35 : key === 'zipCode' || key === 'streetNumber' ? 0.65 : 1, minWidth: 0 }]}>
+                <Input label={label} value={address[key] || ''}
+                  keyboardType={['phone', 'cpf', 'zipCode', 'streetNumber'].includes(key) ? 'number-pad' : 'default'}
+                  onChangeText={(value) => updateAddress(key, value)} />
+                {key === 'city' && cityOpen && matchingCities.map(city => (
+                  <Pressable key={city.id}
+                    onPress={() => {
+                      setAddress(previous => ({ ...previous, city: city.name, federalUnit: city.uf }));
+                      setCityOpen(false);
+                    }}
+                    style={{ padding: 12, borderBottomWidth: 1, borderColor: '#E8DED5', backgroundColor: '#FAF8F5' }}>
+                    <Text style={{ color: '#722F37' }}>{city.name} - {city.uf}</Text>
+                  </Pressable>
+                ))}
+                {key === 'city' && cityError && (
+                  <Text style={{ color: '#722F37', marginTop: 8 }}>Informe a cidade e UF manualmente.</Text>
+                )}
+              </View>
+            ))}
+  </View>
+))}
+
+<View style={styles.submitButton}>
               <Button
                 label={isSubmitting ? 'Criando conta...' : 'Criar conta'}
                 onPress={createAccount}

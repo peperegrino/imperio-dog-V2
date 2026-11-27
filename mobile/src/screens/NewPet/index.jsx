@@ -35,7 +35,7 @@ function BreedSelector({ species, value, onChange, error }) {
         accessibilityRole="button"
         disabled={!species}
         onPress={() => { setQuery(''); setOpen(!open); }}
-        style={[styles.input, { justifyContent: 'center' }]}
+        style={[styles.input, error && styles.inputError, { justifyContent: 'center' }]}
       >
         <Text style={{ color: '#332522' }}>
           {value || (species ? 'Selecionar raça' : 'Selecione a espécie primeiro')}
@@ -48,7 +48,7 @@ function BreedSelector({ species, value, onChange, error }) {
             value={query}
             onChangeText={setQuery}
           />
-          {matches.slice(0, 15).map(item => (
+          {matches.map(item => (
             <Pressable key={item}
               onPress={() => { onChange(item); setOpen(false); }}
               style={{ padding: 14, borderBottomWidth: 1, borderColor: '#E8DED5' }}>
@@ -299,7 +299,7 @@ if (editing) {
             onPress={cancel}
             style={styles.headerBack}
           >
-            <Text style={styles.backMark}>‹</Text>
+            <Text style={styles.backMark}>←</Text>
           </Pressable>
           <Text style={styles.headerTitle}>
   {editing ? 'Editar Pet' : 'Novo Pet'}

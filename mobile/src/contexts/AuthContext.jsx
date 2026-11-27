@@ -98,9 +98,12 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     setSessionToken(null);
-    await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
-    setSession(null);
-    setSessionExpired(false);
+    try {
+      await AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY]);
+    } finally {
+      setSession(null);
+      setSessionExpired(false);
+    }
   }, []);
 
   useEffect(() => {

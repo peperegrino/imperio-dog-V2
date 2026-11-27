@@ -27,6 +27,7 @@ export const styles = StyleSheet.create({
   },
   formCard: {
     width: '100%',
+    maxWidth: 480,
     marginTop: spacing.formOverlap,
     paddingTop: spacing.card,
     paddingBottom: spacing.lg,
@@ -40,7 +41,8 @@ export const styles = StyleSheet.create({
     lineHeight: 28,
   },
   description: {
-    marginTop: spacing.xs,
+    marginTop: 8,
+    marginBottom: 12,
     color: colors.textMuted,
     fontFamily: typography.fontFamily.medium,
     fontSize: 13,
@@ -49,8 +51,20 @@ export const styles = StyleSheet.create({
   field: {
     marginTop: 12,
   },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    columnGap: 10,
+  },
+  sectionTitle: {
+    marginTop: 24,
+    marginBottom: 4,
+    color: colors.primary,
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: 13,
+  },
   submitButton: {
-    marginTop: 28,
+    marginTop: 32,
   },
   cancelButton: {
     minHeight: 44,

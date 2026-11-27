@@ -6,7 +6,7 @@ export const styles = StyleSheet.create({
   safeArea: { flex: 1, alignSelf: 'center', width: '100%', maxWidth: 390, backgroundColor: '#FAF8F5' },
   header: { minHeight: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, backgroundColor: '#FFFFFF', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EEE8E1' },
   backButton: { width: 40, height: 40, justifyContent: 'center' },
-  backMark: { color: colors.primary, fontSize: 32, lineHeight: 36 },
+  backMark: { color: colors.primary, fontSize: 24, lineHeight: 36 },
   headerTitle: { flex: 1, color: '#332522', fontFamily: typography.fontFamily.semibold, fontSize: 16, textAlign: 'center' },
   headerSpacer: { width: 40 },
   content: { width: '100%', maxWidth: 390, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 22, paddingBottom: 130 },

@@ -63,7 +63,7 @@ export default function CustomerChargesScreen({ navigation }) {
       <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Admin')} style={styles.backButton}>
-          <Text style={styles.backMark}>‹</Text>
+          <Text style={styles.backMark}>←</Text>
         </Pressable>
         <Text style={styles.headerTitle}>Faturas</Text>
         <View style={styles.headerSpacer} />

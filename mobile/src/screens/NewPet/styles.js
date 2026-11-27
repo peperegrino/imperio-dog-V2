@@ -26,11 +26,7 @@ export const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
   },
-  backMark: {
-    color: colors.primary,
-    fontSize: 32,
-    lineHeight: 36,
-  },
+  backMark: { color: colors.primary, fontSize: 24, lineHeight: 36 },
   headerTitle: {
     color: colors.textMuted,
     fontFamily: typography.fontFamily.semibold,

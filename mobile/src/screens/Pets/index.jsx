@@ -59,7 +59,7 @@ const removePet = async () => {
           onPress={goBack}
           style={styles.backButton}
         >
-          <Text style={styles.backMark}>‹</Text>
+          <Text style={styles.backMark}>←</Text>
         </Pressable>
         <Text style={styles.headerTitle}>{admin ? 'Pets' : 'Meus Pets'}</Text>
         <ProfileButton

@@ -56,8 +56,9 @@ export const styles = StyleSheet.create({
   profileFieldLast: { borderBottomWidth: 0 },
   profileFieldText: { flex: 1, paddingRight: 8 },
   fieldLabel: { color: '#B58C63', fontFamily: typography.fontFamily.semibold, fontSize: 9, lineHeight: 14 },
-  fieldValue: { marginTop: 1, color: '#332522', fontFamily: typography.fontFamily.medium, fontSize: 11, lineHeight: 17 },
-  fieldInput: { height: 17, lineHeight: 17, marginTop: 1, padding: 0, color: '#332522', fontFamily: typography.fontFamily.medium, fontSize: 11 },
+  fieldValue: {
+    minHeight: 24, marginTop: 1, color: '#332522', fontFamily: typography.fontFamily.medium, fontSize: 11, lineHeight: 17 },
+  fieldInput: { minHeight: 24, lineHeight: 17, marginTop: 1, padding: 0, color: '#332522', fontFamily: typography.fontFamily.medium, fontSize: 11 },
   editDataButton: { height: 43, marginTop: 21, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: colors.primary, borderRadius: 11 },
   editDataText: { color: colors.primary, fontFamily: typography.fontFamily.semibold, fontSize: 12 },
   protectedSection: { flexDirection: 'row', alignItems: 'center' },
