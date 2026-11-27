@@ -1,3 +1,4 @@
+import ProfilePhoto from '../../components/ProfilePhoto';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import { Action, Card, date, Field, Message, money, Page, ResourceState, statusLabel, useResource } from '../../components/ConnectedUI';
@@ -165,6 +166,26 @@ export default function CustomerDetailsScreen({ navigation, route }) {
       {petError ? <Message>{petError}</Message> : null}
       {customerPets.map((pet) => (
         <Card key={pet.id}>
+          <ProfilePhoto
+            path={`/account/pets/${pet.id}/photo`}
+            label={`Foto de ${pet.name}`}
+            size={80}
+            allowRemove
+            fallback={
+              <View style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: '#FAF0F0',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Text style={{ color: '#722F37', fontSize: 28, fontWeight: '700' }}>
+                  {pet.name?.[0]?.toUpperCase()}
+                </Text>
+              </View>
+            }
+          />
           <Text style={styles.itemTitle}>{pet.name || 'Pet sem nome'}</Text>
           <Detail label="Espécie" value={pet.species || 'Não informada'} />
           <Detail label="Raça" value={pet.breed || 'Não informada'} />

@@ -92,7 +92,25 @@ function FormField({
         autoCapitalize={field.key === 'birthDate' || field.key === 'weight' ? 'none' : 'words'}
         keyboardType={field.keyboardType || 'default'}
         multiline={multiline}
-        onChangeText={onChangeText}
+        maxLength={field.key === 'birthDate' ? 10 : undefined}
+        onChangeText={(text) => {
+          if (field.key !== 'birthDate') {
+            onChangeText(text);
+            return;
+          }
+
+          const digits = text.replace(/[^0-9]/g, '').slice(0, 8);
+          let formatted = digits.slice(0, 2);
+
+          if (digits.length > 2) formatted += '/' + digits.slice(2, 4);
+          if (digits.length > 4) formatted += '/' + digits.slice(4, 8);
+
+          if (text.length > value.length && (digits.length === 2 || digits.length === 4)) {
+            formatted += '/';
+          }
+
+          onChangeText(formatted);
+        }}
         placeholder={field.placeholder}
         placeholderTextColor={colors.textGray}
         style={[styles.input, multiline && styles.multilineInput, error && styles.inputError]}

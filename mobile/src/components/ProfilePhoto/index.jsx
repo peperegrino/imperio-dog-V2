@@ -95,16 +95,19 @@ export default function ProfilePhoto({ path, label, fallback, size, readOnly = f
         <>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${photo ? 'Trocar' : 'Adicionar'} ${label.toLowerCase()}`}
+            accessibilityLabel={`${photo ? 'Alterar' : 'Adicionar'} ${label.toLowerCase()}`}
             disabled={saving}
             onPress={choosePhoto}
-            style={styles.button}
+            style={styles.primaryButton}
           >
             <Text style={styles.buttonText}>
-              {saving ? 'Salvando foto…' : photo ? 'Trocar foto' : 'Adicionar foto'}
+              {saving ? 'Salvando foto…' : photo ? 'Alterar foto' : 'Adicionar foto'}
             </Text>
           </Pressable>
-          <Text style={styles.photoHint}>JPG ou PNG • Até 4 MB</Text>
+          <View style={styles.hintCard}>
+            <Text style={styles.hintTitle}>Requisitos da imagem</Text>
+            <Text style={styles.photoHint}>JPG ou PNG | Até 4 MB</Text>
+          </View>
           {allowRemove && photo && (
             <Pressable
               accessibilityRole="button"
@@ -130,7 +133,31 @@ export default function ProfilePhoto({ path, label, fallback, size, readOnly = f
 const styles = StyleSheet.create({
   container: { alignItems: 'center' },
   button: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
-  buttonText: { color: colors.primary, fontWeight: '600' },
+  primaryButton: {
+    backgroundColor: '#722F37',
+    borderRadius: 12,
+    minHeight: 44,
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  hintCard: {
+    backgroundColor: '#FAF8F5',
+    borderWidth: 1,
+    borderColor: '#D9C2A6',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  hintTitle: {
+    color: '#722F37',
+    fontWeight: '700',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  buttonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
   removeText: { color: colors.textMuted },
   message: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
   

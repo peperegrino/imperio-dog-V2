@@ -12,6 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.exif.ExifIFD0Directory;
+import java.awt.geom.AffineTransform;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.awt.Color;
@@ -125,7 +129,7 @@ public class ProfilePhotoService {
                     int step = Math.max(1, edge / (AVATAR_SIZE * 2));
                     var params = reader.getDefaultReadParam();
                     params.setSourceSubsampling(step, step, 0, 0);
-                    return resize(reader.read(0, params));
+                    return resize(correctOrientation(reader.read(0, params), bytes));
                 } finally {
                     reader.dispose();
                 }
@@ -133,6 +137,55 @@ public class ProfilePhotoService {
         } catch (IOException | IllegalArgumentException exception) {
             throw invalidPhoto();
         }
+    }
+
+    private static BufferedImage correctOrientation(BufferedImage image, byte[] bytes) {
+        int orientation = 1;
+
+        try {
+            var metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(bytes));
+            var directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+
+            if (directory != null) {
+                Integer value = directory.getInteger(ExifIFD0Directory.TAG_ORIENTATION);
+                if (value != null) orientation = value;
+            }
+        } catch (ImageProcessingException | IOException ignored) {
+            return image;
+        }
+
+        int w = image.getWidth();
+        int h = image.getHeight();
+
+        AffineTransform transform = switch (orientation) {
+            case 2 -> new AffineTransform(-1, 0, 0, 1, w, 0);
+            case 3 -> new AffineTransform(-1, 0, 0, -1, w, h);
+            case 4 -> new AffineTransform(1, 0, 0, -1, 0, h);
+            case 5 -> new AffineTransform(0, 1, 1, 0, 0, 0);
+            case 6 -> new AffineTransform(0, 1, -1, 0, h, 0);
+            case 7 -> new AffineTransform(0, -1, -1, 0, h, w);
+            case 8 -> new AffineTransform(0, -1, 1, 0, 0, w);
+            default -> null;
+        };
+
+        if (transform == null) return image;
+
+        boolean swap = orientation >= 5 && orientation <= 8;
+
+        var corrected = new BufferedImage(
+            swap ? h : w,
+            swap ? w : h,
+            BufferedImage.TYPE_INT_ARGB
+        );
+
+        var graphics = corrected.createGraphics();
+        try {
+            graphics.drawImage(image, transform, null);
+        } finally {
+            graphics.dispose();
+        }
+
+        return corrected;
     }
 
     private static byte[] resize(BufferedImage original) throws IOException {
