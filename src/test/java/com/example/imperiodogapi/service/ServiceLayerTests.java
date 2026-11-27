@@ -163,7 +163,7 @@ private com.example.imperiodogapi.repository.ChargeRepository chargeRepository;
         Customer customer = Customer.builder().id(7L).build();
         PetRequestDTO request = new PetRequestDTO("Rex", "Cachorro", "Vira-lata", 7L);
 
-        when(customerRepository.findById(7L)).thenReturn(Optional.of(customer));
+        when(customerRepository.findLockedById(7L)).thenReturn(Optional.of(customer));
         when(petRepository.save(any(Pet.class))).thenAnswer(invocation -> {
             Pet pet = invocation.getArgument(0);
             pet.setId(15L);

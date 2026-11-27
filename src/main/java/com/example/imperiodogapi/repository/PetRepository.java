@@ -16,5 +16,7 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
     @Query("select p from Pet p where p.id = :id")
     Optional<Pet> findLockedById(@Param("id") Long id);
 
+    long countByCustomerId(Long customerId);
+
     List<Pet> findByCustomerId(Long customerId);
 }

@@ -33,7 +33,9 @@ public class PetService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o nome do pet");
         }
         if (request.customerId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Select a customer");
-        Customer customer = getCustomer(request.customerId());
+        Customer customer = getCustomerWithCapacity(request.customerId());
+        validateBirthDate(request.birthDate());
+        validateWeight(request.species(), request.weight());
         Pet pet = Pet.builder()
                 .name(request.name().trim())
                 .species(request.species())
@@ -63,11 +65,20 @@ public class PetService {
             if (!pet.getCustomer().getId().equals(request.customerId()) && chargeRepository.existsByPetId(id)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "A pet with charge history cannot change customer");
             }
-            pet.setCustomer(getCustomer(request.customerId()));
+            if (!pet.getCustomer().getId().equals(request.customerId())) {
+                pet.setCustomer(getCustomerWithCapacity(request.customerId()));
+            }
         }
         if (request.name() != null) {
             if (request.name().isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o nome do pet");
             pet.setName(request.name().trim());
+        }
+        if (request.birthDate() != null) validateBirthDate(request.birthDate());
+        if (request.weight() != null || request.species() != null) {
+            validateWeight(
+                request.species() != null ? request.species() : pet.getSpecies(),
+                request.weight() != null ? request.weight() : pet.getWeight()
+            );
         }
         if (request.species() != null) pet.setSpecies(request.species());
         if (request.breed() != null) pet.setBreed(request.breed());
@@ -133,9 +144,34 @@ public void deleteOwnPet(Long id, Long customerId) {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found"));
     }
 
-    private Customer getCustomer(Long id) {
-        return customerRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer not found"));
+    private Customer getCustomerWithCapacity(Long id) {
+        Customer customer = customerRepository.findLockedById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tutor nao encontrado"));
+
+        if (petRepository.countByCustomerId(id) >= 30) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Limite de 30 pets por tutor atingido");
+        }
+        return customer;
+    }
+
+    private void validateBirthDate(java.time.LocalDate birthDate) {
+        if (birthDate == null) return;
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (birthDate.isAfter(today) || birthDate.isBefore(today.minusYears(30))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A idade do pet deve estar entre 0 e 30 anos");
+        }
+    }
+
+    private void validateWeight(String species, java.math.BigDecimal weight) {
+        if (weight == null) return;
+        java.math.BigDecimal minimum = new java.math.BigDecimal("0.05");
+        java.math.BigDecimal maximum = new java.math.BigDecimal(
+            "Gato".equalsIgnoreCase(species) ? "25" : "150"
+        );
+
+        if (weight.compareTo(minimum) < 0 || weight.compareTo(maximum) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Peso permitido: 0,05 a " + maximum + " kg");
+        }
     }
 
     private PetResponseDTO toDto(Pet pet) {
