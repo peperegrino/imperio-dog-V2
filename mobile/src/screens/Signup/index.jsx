@@ -64,6 +64,45 @@ export default function SignupScreen({ navigation }) {
     }
   }
 
+  async function updateAddress(key, value) {
+    if (key === 'cpf') {
+      value = value.replace(/\D/g, '').slice(0, 11)
+        .replace(/^(\d{3})(\d)/, '$1.$2')
+        .replace(/^(\d{3}\.\d{3})(\d)/, '$1.$2')
+        .replace(/(\.\d{3})(\d)/, '$1-$2');
+    }
+    if (key === 'phone') {
+      const d = value.replace(/\D/g, '').slice(0, 11);
+      value = d.length <= 2 ? d : '(' + d.slice(0, 2) + ') ' +
+        d.slice(2, d.length === 11 ? 7 : 6) +
+        (d.length > 6 ? '-' + d.slice(d.length === 11 ? 7 : 6) : '');
+    }
+    if (key === 'zipCode') {
+      value = value.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
+    }
+    if (key === 'federalUnit') value = value.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2);
+    if (key === 'streetNumber') value = value.replace(/\D/g, '').slice(0, 7);
+
+    setAddress(previous => ({ ...previous, [key]: value }));
+
+    if (key === 'zipCode' && value.length === 9) {
+      try {
+        const response = await fetch('https://viacep.com.br/ws/' + value.replace(/\D/g, '') + '/json/');
+        const data = await response.json();
+        if (data.erro) return;
+        setAddress(previous => previous.zipCode !== value ? previous : ({
+          ...previous,
+          streetName: data.logradouro || previous.streetName || '',
+          neighborhood: data.bairro || previous.neighborhood || '',
+          city: data.localidade || '',
+          federalUnit: data.uf || '',
+        }));
+      } catch {
+        // Manual address entry remains available.
+      }
+    }
+  }
+
   async function createAccount() {
     if (isSubmitting) {
       return;
@@ -132,6 +171,9 @@ export default function SignupScreen({ navigation }) {
         email: normalizedEmail,
         password,
         ...address,
+        phone: phoneDigits,
+        cpf: address.cpf.replace(/\D/g, ''),
+        zipCode: address.zipCode.replace(/\D/g, ''),
       });
       navigation.reset({
         index: 0,
@@ -205,7 +247,8 @@ export default function SignupScreen({ navigation }) {
             {addressFields.map(([key, label]) => (
               <View key={key} style={styles.field}>
                 <Input label={label} value={address[key] || ''}
-                  onChangeText={(value) => setAddress((previous) => ({ ...previous, [key]: value }))} />
+                  keyboardType={['phone', 'cpf', 'zipCode', 'streetNumber'].includes(key) ? 'number-pad' : 'default'}
+                  onChangeText={(value) => updateAddress(key, value)} />
               </View>
             ))}
             <View style={styles.submitButton}>

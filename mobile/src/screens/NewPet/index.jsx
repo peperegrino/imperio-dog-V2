@@ -44,7 +44,11 @@ function isValidBirthDate(value) {
   const year = Number(yearText);
   const date = new Date(year, month - 1, day);
 
-  return date.getFullYear() === year
+  const minimum = new Date();
+  minimum.setFullYear(minimum.getFullYear() - 30);
+  minimum.setHours(0, 0, 0, 0);
+
+  return date >= minimum && date.getFullYear() === year
     && date.getMonth() === month - 1
     && date.getDate() === day
     && date <= new Date();
@@ -59,12 +63,15 @@ function validate(values, editing = false) {
   if (!editing && !values.sex) errors.sex = 'Selecione o sexo.';
   if (!editing && !values.birthDate.trim()) errors.birthDate = 'Informe a data de nascimento.';
   else if (values.birthDate.trim() && !isValidBirthDate(values.birthDate.trim())) {
-    errors.birthDate = 'Use uma data válida no formato DD/MM/AAAA, sem data futura.';
+    errors.birthDate = 'Informe uma data valida, sem ultrapassar 30 anos.';
   }
 
   if (values.weight.trim()) {
     const weight = Number(values.weight.replace(',', '.'));
-    if (!Number.isFinite(weight) || weight <= 0) errors.weight = 'Informe um peso maior que zero.';
+    const maximum = values.species === 'Gato' ? 25 : 150;
+    if (!Number.isFinite(weight) || weight < 0.05 || weight > maximum) {
+      errors.weight = 'Informe um peso entre 0,05 e ' + maximum + ' kg.';
+    }
   } else if (!editing) {
     errors.weight = 'Informe o peso em quilogramas.';
   }

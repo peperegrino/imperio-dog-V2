@@ -106,7 +106,7 @@ export const styles = StyleSheet.create({
     minWidth: 190,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 28,
     paddingHorizontal: 20,
     backgroundColor: colors.primary,
     borderRadius: 13,

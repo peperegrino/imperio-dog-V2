@@ -67,6 +67,7 @@ export const styles = StyleSheet.create({
     lineHeight: 20,
   },
   summaryCard: {
+    marginBottom: 20,
     minHeight: 90,
     flexDirection: 'row',
     alignItems: 'center',

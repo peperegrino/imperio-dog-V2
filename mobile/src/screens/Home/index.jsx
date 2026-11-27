@@ -16,7 +16,7 @@ import SideMenu from '../../components/SideMenu';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { styles } from './styles';
-import { showAlert, showConfirm } from '../../utils/alert';
+import { showAlert } from '../../utils/alert';
 import {
   bellXml,
   calendarXml,
@@ -198,11 +198,8 @@ export default function HomeScreen({ navigation }) {
 
   async function sair() {
     try {
-      if (!(await showConfirm('Sair da conta?', 'Deseja encerrar sua sessão?'))) {
-        return;
-      }
-      await signOut();
-      navigation.replace('Login');
+
+      await signOut();
     } catch (error) {
       showAlert('Não foi possível sair', error.message || 'Tente novamente.');
     }

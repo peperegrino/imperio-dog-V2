@@ -47,10 +47,10 @@ export const styles = StyleSheet.create({
     lineHeight: 20,
   },
   field: {
-    marginTop: spacing.lg,
+    marginTop: 12,
   },
   submitButton: {
-    marginTop: spacing.xl,
+    marginTop: 28,
   },
   cancelButton: {
     minHeight: 44,

@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   label: {
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 0.25,
     lineHeight: 15,
   },

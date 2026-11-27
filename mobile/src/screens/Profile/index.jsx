@@ -7,14 +7,15 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { ResourceState, useResource } from '../../components/ConnectedUI';
 import ProfilePhoto from '../../components/ProfilePhoto';
-import { showAlert, showConfirm } from '../../utils/alert';
+import AppNavigation, { ProfileButton } from '../../components/AppNavigation';
+import { showAlert } from '../../utils/alert';
 import { colors } from '../../theme/colors';
 
 import { styles } from './styles';
@@ -133,7 +134,6 @@ export default function ProfileScreen({ navigation }) {
   const { session, signOut } = useAuth();
   const admin = session.role === 'ADMIN';
   const homeRoute = admin ? 'Admin' : 'Home';
-  const insets = useSafeAreaInsets();
   const account = useResource('/account/me');
   const pets = useResource(admin ? null : '/account/pets');
   const [draft, setDraft] = useState(null);
@@ -166,9 +166,7 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleLogout = async () => {
-    if (await showConfirm('Sair da conta?', 'Você poderá entrar novamente pela tela de acesso.')) {
-      await signOut();
-    }
+    await signOut();
   };
 
   return (
@@ -180,7 +178,7 @@ export default function ProfileScreen({ navigation }) {
         </Pressable>
         <Text style={styles.headerTitle}>Perfil</Text>
         <View style={styles.headerActions}>
-          <View style={styles.headerAvatar}><ProfileIcon name="user" size={15} color={colors.white} /></View>
+          <ProfileButton onPress={() => navigation.navigate("Profile", { homeRoute })} size={30} iconSize={15} />
         </View>
       </View>
 
@@ -237,8 +235,8 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.detailsCard}>
             <ProfileField label="NOME COMPLETO" value={profile.name} icon="user" editing={editing} onChangeText={(value) => setDraft({ ...draft, name: value })} />
             <ProfileField label="E-MAIL DE CONTATO" value={profile.email} icon="email" />
-            <ProfileField label="TELEFONE / WHATSAPP" value={profile.phone} icon="phone" editing={editing} onChangeText={(value) => setDraft({ ...draft, phone: value })} last />
-            <ProfileField label="CPF" value={profile.cpf} icon="shield" />
+            <ProfileField label="TELEFONE / WHATSAPP" value={profile.phone} icon="phone" editing={editing} onChangeText={(value) => setDraft({ ...draft, phone: value })} />
+            <ProfileField label="CPF" value={profile.cpf} icon="shield" last />
           </View>
           <Pressable accessibilityRole="button" disabled={saving || !account.data} onPress={editProfile} style={({ pressed }) => [styles.editDataButton, pressed && styles.pressed]}>
             <ProfileIcon name={editing ? 'check' : 'edit'} size={15} />
@@ -259,24 +257,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
-        <Pressable accessibilityRole="button" onPress={navigateHome} style={styles.tabItem}>
-          <ProfileIcon name="home" size={18} color="#6E5B58" />
-          <Text style={styles.tabLabel}>Início</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => navigation.navigate(homeRoute === 'Admin' ? 'CustomerCharges' : 'Charges', { homeRoute })} style={styles.tabItem}>
-          <ProfileIcon name="receipt" size={18} color="#6E5B58" />
-          <Text style={styles.tabLabel}>Faturas</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => navigation.navigate('History', { homeRoute })} style={styles.tabItem}>
-          <ProfileIcon name="history" size={18} color="#6E5B58" />
-          <Text style={styles.tabLabel}>Histórico</Text>
-        </Pressable>
-        <View accessibilityRole="tab" accessibilityState={{ selected: true }} style={styles.tabItem}>
-          <ProfileIcon name="user" size={18} />
-          <Text style={styles.activeTabLabel}>Perfil</Text>
-        </View>
-      </View>
+      <AppNavigation navigation={navigation} activeRoute="Profile" homeRoute={homeRoute} />
     </SafeAreaView>
   );
 }

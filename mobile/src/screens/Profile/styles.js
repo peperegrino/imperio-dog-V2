@@ -4,7 +4,7 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
 export const styles = StyleSheet.create({
-  safeArea: { flex: 1, width: '100%', maxWidth: 390, alignSelf: 'center', backgroundColor: colors.background },
+  safeArea: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: colors.background },
   header: {
     height: 53,
     paddingHorizontal: 17,
@@ -20,7 +20,7 @@ export const styles = StyleSheet.create({
   headerAction: { width: 27, height: 34, alignItems: 'center', justifyContent: 'center' },
   notificationDot: { position: 'absolute', right: 3, top: 5, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary },
   headerAvatar: { width: 29, height: 29, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.primary },
-  scrollContent: { width: '100%', maxWidth: 390, alignSelf: 'center', paddingHorizontal: '5%', paddingTop: 15, paddingBottom: 20 },
+  scrollContent: { width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: '5%', paddingTop: 15, paddingBottom: 100 },
   pageIntro: { marginBottom: 17, paddingHorizontal: 8 },
   pageTitle: { color: colors.primary, fontFamily: typography.fontFamily.bold, fontSize: 21, lineHeight: 29 },
   pageDescription: { marginTop: 1, color: '#817873', fontFamily: typography.fontFamily.medium, fontSize: 12, lineHeight: 18 },
@@ -57,7 +57,7 @@ export const styles = StyleSheet.create({
   profileFieldText: { flex: 1, paddingRight: 8 },
   fieldLabel: { color: '#B58C63', fontFamily: typography.fontFamily.semibold, fontSize: 9, lineHeight: 14 },
   fieldValue: { marginTop: 1, color: '#332522', fontFamily: typography.fontFamily.medium, fontSize: 11, lineHeight: 17 },
-  fieldInput: { minHeight: 24, marginTop: 0, padding: 0, color: '#332522', fontFamily: typography.fontFamily.medium, fontSize: 11 },
+  fieldInput: { height: 17, lineHeight: 17, marginTop: 1, padding: 0, color: '#332522', fontFamily: typography.fontFamily.medium, fontSize: 11 },
   editDataButton: { height: 43, marginTop: 21, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: colors.primary, borderRadius: 11 },
   editDataText: { color: colors.primary, fontFamily: typography.fontFamily.semibold, fontSize: 12 },
   protectedSection: { flexDirection: 'row', alignItems: 'center' },
@@ -68,7 +68,7 @@ export const styles = StyleSheet.create({
   preferenceTitle: { color: '#332522', fontFamily: typography.fontFamily.semibold, fontSize: 11, lineHeight: 16 },
   preferenceSubtitle: { marginTop: 1, color: '#756763', fontFamily: typography.fontFamily.medium, fontSize: 9, lineHeight: 13 },
   preferencesCard: { overflow: 'hidden', borderWidth: 1, borderColor: '#EFDFDA', borderRadius: 14, backgroundColor: colors.surface },
-  logoutButton: { height: 43, marginTop: -1, marginBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: '#EFDFDA', borderRadius: 11, backgroundColor: colors.surface },
+  logoutButton: { height: 43, marginTop: 8, marginBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: '#EFDFDA', borderRadius: 11, backgroundColor: colors.surface },
   logoutText: { color: colors.primary, fontFamily: typography.fontFamily.semibold, fontSize: 12 },
   footer: { alignItems: 'center', paddingBottom: 5 },
   footerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },

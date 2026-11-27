@@ -15,10 +15,10 @@ import { styles } from './styles';
 const inactiveColor = '#6E5B58';
 
 const items = [
-  { key: 'Home', label: 'Início', icon: homeIconXml, size: [16, 18] },
-  { key: 'Charges', label: 'Faturas', icon: chargesIconXml, size: [18, 20] },
-  { key: 'History', label: 'Histórico', icon: historyIconXml, size: [18, 18] },
-  { key: 'Profile', label: 'Perfil', icon: profileIconXml, size: [16, 16] },
+  { key: 'Home', label: 'Início', icon: homeIconXml, size: [20, 20] },
+  { key: 'Charges', label: 'Faturas', icon: chargesIconXml, size: [20, 20] },
+  { key: 'History', label: 'Histórico', icon: historyIconXml, size: [20, 20] },
+  { key: 'Profile', label: 'Perfil', icon: profileIconXml, size: [20, 20] },
 ];
 
 export function ProfileButton({

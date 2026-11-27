@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import SideMenu from '../../components/SideMenu';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
-import { showAlert, showConfirm } from '../../utils/alert';
+import { showAlert } from '../../utils/alert';
 import HomeIcon from '../Home/icons';
 import { styles } from './styles';
 
@@ -261,11 +261,8 @@ export default function AdminScreen({ navigation }) {
 
   async function sair() {
     try {
-      if (!(await showConfirm('Sair da conta?', 'Deseja encerrar sua sessão?'))) {
-        return;
-      }
-      await signOut();
-      navigation.replace('Login');
+
+      await signOut();
     } catch (error) {
       showAlert('Não foi possível sair', error.message || 'Tente novamente.');
     }
